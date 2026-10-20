@@ -1,72 +1,48 @@
-/* Host tests use the same classifier header as the S3 firmware. */
+/* Real monotonic time, independent of camera FPS. */
 #include <assert.h>
 #include <stdio.h>
 #include "main/button.h"
-
-static unsigned sample(button_state_t *state, bool raw, unsigned count, uint8_t expected)
-{
-    unsigned events = 0;
-    for (unsigned i = 0; i < count; ++i) {
-        uint8_t result = button_update(state, true, raw);
-        if (result != BUTTON_RESULT_NONE) {
-            assert(result == expected);
-            ++events;
-        }
-    }
-    return events;
-}
-
 int main(void)
 {
-    button_state_t state = {0};
-    assert(button_output_flags(&state) == FRAME_FLAG_BUTTON_CLASSIFIED);
-#if BUTTON_LONG_TICKS == 1 && BUTTON_DEBOUNCE_TICKS == 1
-    assert(sample(&state, true, 1, BUTTON_RESULT_LONG) == 1);
-    assert(sample(&state, true, 100, BUTTON_RESULT_NONE) == 0);
-    assert(sample(&state, false, 1, BUTTON_RESULT_NONE) == 0);
-#else
-    assert(BUTTON_LONG_TICKS > BUTTON_DEBOUNCE_TICKS);
-    /* Exactly one tick below LONG stays SHORT through release debounce. */
-    assert(sample(&state, false, BUTTON_DEBOUNCE_TICKS, BUTTON_RESULT_NONE) == 0);
-    assert(state.known && !state.pressed);
-    assert(sample(&state, true, BUTTON_LONG_TICKS - 1, BUTTON_RESULT_NONE) == 0);
-    assert(sample(&state, false, BUTTON_DEBOUNCE_TICKS, BUTTON_RESULT_SHORT) == 1);
-    assert(state.last_result == BUTTON_RESULT_SHORT && !state.pressed);
-    assert(button_output_flags(&state) == 6);
-    /* LONG emitted once; last result survives subsequent frames and release. */
-    assert(sample(&state, true, BUTTON_LONG_TICKS, BUTTON_RESULT_LONG) == 1);
-    assert(button_output_flags(&state) == 7);
-    assert(sample(&state, true, 1000, BUTTON_RESULT_NONE) == 0);
-    assert(state.ticks == BUTTON_LONG_TICKS);
-    assert(sample(&state, false, BUTTON_DEBOUNCE_TICKS, BUTTON_RESULT_NONE) == 0);
-    assert(state.last_result == BUTTON_RESULT_LONG);
-    assert(sample(&state, false, 100, BUTTON_RESULT_NONE) == 0);
-    assert(state.last_result == BUTTON_RESULT_LONG);
-
-    button_reset(&state);
-    /* Alternating contact chatter never creates a press. */
-    for (unsigned i = 0; i < 100; ++i) {
-        assert(button_update(&state, true, i % 2 != 0) == BUTTON_RESULT_NONE);
-    }
-    assert(!state.pressed && state.last_result == BUTTON_RESULT_NONE);
-    button_reset(&state);
-    assert(sample(&state, true, BUTTON_DEBOUNCE_TICKS, BUTTON_RESULT_NONE) == 0);
-    /* Brief release chatter cannot split a press. */
-    assert(sample(&state, false, BUTTON_DEBOUNCE_TICKS - 1, BUTTON_RESULT_NONE) == 0);
-    assert(state.pressed);
-    assert(button_update(&state, true, true) == BUTTON_RESULT_NONE);
-    assert(sample(&state, false, BUTTON_DEBOUNCE_TICKS, BUTTON_RESULT_SHORT) == 1);
-
-    button_reset(&state);
-    sample(&state, true, BUTTON_DEBOUNCE_TICKS, BUTTON_RESULT_NONE);
-    assert(button_update(&state, false, false) == BUTTON_RESULT_NONE);
-    assert(!state.known && state.ticks == 0 && state.last_result == BUTTON_RESULT_NONE);
-    assert(sample(&state, false, BUTTON_DEBOUNCE_TICKS, BUTTON_RESULT_NONE) == 0);
-    sample(&state, true, BUTTON_DEBOUNCE_TICKS, BUTTON_RESULT_NONE);
-    button_reset(&state); /* TCP reconnect / stream outage */
-    assert(sample(&state, false, BUTTON_DEBOUNCE_TICKS, BUTTON_RESULT_NONE) == 0);
-    assert(state.last_result == BUTTON_RESULT_NONE);
-#endif
-    puts("PASS: S3 button classifier");
-    return 0;
+    button_state_t s={0};
+    assert(button_update(&s,true,true,0)==0);
+    assert(button_update(&s,true,true,2000000)==0); /* reconnect held */
+    assert(button_update(&s,true,false,2020000)==0);
+    assert(button_update(&s,true,false,2060000)==0); /* arm on release */
+    assert(button_update(&s,true,true,2100000)==0);
+    assert(button_update(&s,true,true,2140000)==0);
+    assert(button_update(&s,true,false,2200000)==0);
+    assert(button_update(&s,true,false,2240000)==BUTTON_RESULT_SHORT);
+    assert(button_update(&s,true,false,2300000)==0);
+    assert(button_update(&s,true,true,2400000)==0);
+    assert(button_update(&s,true,true,2440000)==0);
+    for(uint64_t t=2460000;t<3400000;t+=20000) assert(button_update(&s,true,true,t)==0);
+    assert(button_update(&s,true,true,3400000)==BUTTON_RESULT_LONG);
+    assert(button_update(&s,true,true,3500000)==0);
+    assert(button_update(&s,true,false,3520000)==0);
+    assert(button_update(&s,true,false,3560000)==0);
+    button_reset(&s);
+    for(uint64_t t=0;t<1000000;t+=10000) assert(button_update(&s,true,(t/10000)%2,t)==0);
+    button_reset(&s);
+    assert(button_update(&s,true,false,0)==0);
+    assert(button_update(&s,true,false,40000)==0);
+    assert(button_update(&s,true,true,50000)==0);
+    assert(button_update(&s,true,true,90000)==0);
+    assert(button_update(&s,true,true,2000000)==0); /* sampling gap cancels */
+    assert(button_update(&s,true,false,2010000)==0);
+    assert(button_update(&s,true,false,2050000)==0);
+    assert(button_update(&s,false,false,2060000)==0);
+    assert(!s.known);
+    button_reset(&s);
+    uint32_t session=1;
+    assert(button_update_session(&s,&session,1,true,false,0)==0);
+    assert(button_update_session(&s,&session,1,true,false,40000)==0);
+    assert(button_update_session(&s,&session,1,true,true,60000)==0);
+    assert(button_update_session(&s,&session,1,true,true,100000)==0);
+    /* Browser reauthentication while held cannot carry an old gesture. */
+    assert(button_update_session(&s,&session,2,true,true,120000)==0);
+    for(uint64_t t=140000;t<1400000;t+=20000) assert(button_update_session(&s,&session,2,true,true,t)==0);
+    assert(button_update_session(&s,&session,2,true,false,1400000)==0);
+    assert(button_update_session(&s,&session,2,true,false,1440000)==0);
+    puts("PASS: elapsed-time button debounce, short/long, bounce, reconnect, stale input");
 }

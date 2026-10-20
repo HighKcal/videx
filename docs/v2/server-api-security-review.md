@@ -1,0 +1,24 @@
+# Server API security review
+
+Scope: current static review of `mobile/server/*.mjs`, `mobile/src/core/openai.ts`, and `docs/v2/server-api.md`. Read-only; no secrets/env files, tests/builds, live API calls, or deployment.
+
+## Current implementation evidence
+
+- `mobile/server/server.mjs` now implements both `/api/vision` and `/api/speech` (`:181-207`), strict schemas and bounded JSON input (`:56-68,181-188`), structural JPEG validation and dimension ceilings via `jpeg.mjs:1-47`, fixed upstream endpoints/models/prompts (`server.mjs:8-11,185-197`), and bounded upstream response reads (Vision 256 KiB, audio 10 MB) with content-type/status checks (`:83-113`).
+- Auth uses a SHA-256 digest plus constant-time comparison; config requires distinct `VIDEX_ACCESS_TOKEN` and `OPENAI_API_KEY`, minimum token length and exact HTTPS origins (loopback HTTP allowed) (`server.mjs:19-38,164-165`). Invalid configuration fails closed. There is no permissive CORS response or OPTIONS bypass.
+- Shared process-wide request-window and concurrency caps (defaults 30/minute, 2 active), bounded overrides, request/upstream deadlines, request-disconnect/upstream abort propagation, and slot cleanup are present (`server.mjs:13,139-140,166-180,189-217`). Node server connection/header/socket limits are configured (`:142,219-228`).
+- OpenAI fetch is fixed-host, redirects rejected, credentials omitted and cache disabled (`:190-198`). Upstream response types are checked; client responses are no-store and generic on upstream failure (`:45-49,83-113,206-211`). Audio response length is bounded and sending has a 5-second close guard (`:115-131`).
+- `index.mjs:6-16` binds to loopback by default and logs no credential values; `static.mjs:13-50` serves only constrained public build paths with no-store and symlink/path checks. Client default is server mode; separate consent gates and server token labeling are visible in `mobile/src/core/openai.ts:2-4,29-69,71-129` and `mobile/src/main.tsx:174-209`. Client abort signals are forwarded and checked around reads.
+
+## Current assessment and limits
+
+- `mobile/src/core/openai.ts:61` uses `referrerPolicy: "same-origin"` in server mode, and the coordinator reports Chrome E2E verified actual exact-Origin requests and server-served UI integration. The earlier pending Origin integration concern is resolved according to that report; retain the server's exact-origin policy.
+- Reviewed `docs/v2/server-api.md`: setup keeps secrets in the service environment, documents exact origins and reverse-proxy constraints, explains bounded process-local quota/replica limitation, and explicitly distinguishes token from OpenAI key. It accurately warns the server cannot prove client consent/selection provenance and shared bearer access is not multi-user identity.
+- Coordinator reports final `npm test` 57/57, `npm run build`, `npm run test:server` 19/19, format check, and Chrome E2E 9/9 including injected-upstream OCR and MP3 playback. These are attributed results recorded in [`server-api-validation.md`](server-api-validation.md), not independently rerun here.
+- **Resolved upload-timeout resource concern:** final backend source retains `bodyRead`, responds 408 with connection-close semantics, destroys the incomplete request after response finish/close, then awaits reader settlement before decrementing `active` (`server.mjs:180-184,212-234`). Backend reports regression evidence: `socketDestroyed=true`, `readerPending=0`, `consumedBytes=10` despite `attemptedLateBytes=4096`, no upstream call, and slot status 429 before cleanup / 200 after. Focused real-socket regression passed 10/10 repetitions and final server suite 20/20 per `server-api-backend-handoff.md`; coordinator independently reran `npm run test:server` 20/20. This concern is closed based on that execution evidence, not rerun in this documentation task.
+- The shared bearer-token model intentionally does not provide per-user identity or full public multi-user authorization. This is a deployment boundary/limitation, not an implementation defect; do not expose as a public service without an additional reviewed auth and abuse-control layer.
+- No new substantive source blocker remains from this focused review. Actual OpenAI calls, Android behavior, tunnel/proxy deployment, and runtime secret registration remain unexecuted as stated in the validation record.
+
+## Verification
+
+Only file reads/searches and documentation edits were performed in this turn. No scripts/tests/builds, paid API calls, runtime secret provisioning, or deployment were run. Prior intermediate blocker statements (missing Vision, unbounded rate/concurrency/audio, missing timeout/cancellation) are obsolete and superseded by the current source review above.

@@ -1,0 +1,56 @@
+body {
+  margin: 0;
+  font-family: Arial, "Apple SD Gothic Neo", sans-serif;
+  background: white;
+  color: #202020;
+}
+.diagnostics {
+  max-width: 720px;
+  margin: auto;
+  padding: 24px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.diagnostics label {
+  display: block;
+  margin: 16px 0 4px;
+}
+.diagnostics input:not([type="checkbox"]) {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  font: inherit;
+  border: 1px solid #777;
+  border-radius: 6px;
+}
+.diagnostics button {
+  padding: 12px;
+  margin: 6px 8px 6px 0;
+  font: inherit;
+  border: 1px solid #888;
+  border-radius: 8px;
+  background: #eee;
+  color: #202020;
+  min-height: 44px;
+}
+.diagnostics button[aria-pressed="true"] {
+  outline: 3px solid #3978f6;
+}
+.diagnostics input[type="checkbox"] {
+  min-width: 24px;
+  min-height: 24px;
+  vertical-align: middle;
+  margin-right: 10px;
+}
+.diagnostics dt {
+  font-weight: bold;
+}
+.diagnostics dd {
+  margin-left: 12px;
+}
+.diagnostics :focus-visible {
+  outline: 3px solid #3978f6;
+  outline-offset: 3px;
+}

@@ -1,0 +1,182 @@
+.videx-screen {
+  --videx-accent: #ff5033;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: max(21px, 5.5svh, calc(env(safe-area-inset-top, 0px) + 21px))
+    max(24px, env(safe-area-inset-right, 0px))
+    max(32px, env(safe-area-inset-bottom, 0px))
+    max(24px, env(safe-area-inset-left, 0px));
+  background: #fff;
+  color: #202020;
+  font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Apple SD Gothic Neo',
+    'Noto Sans KR', 'Malgun Gothic', Arial, sans-serif;
+  color-scheme: light;
+  touch-action: pan-y;
+}
+
+.videx-screen *,
+.videx-screen *::before,
+.videx-screen *::after {
+  box-sizing: border-box;
+}
+
+.videx-brand {
+  align-self: stretch;
+  margin: 0;
+  font-family: Arial, 'Helvetica Neue', 'Apple SD Gothic Neo', sans-serif;
+  font-size: clamp(24px, 6vw, 30px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: .075em;
+}
+
+.videx-brand-button {
+  display: block;
+  min-width: 44px;
+  min-height: 44px;
+  margin: -4px 0;
+  padding: 4px 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: start;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.videx-friend {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  width: min(60.833vw, 292px, 100%);
+  aspect-ratio: 1;
+  margin: clamp(32px, calc(26.5svh - min(30.4165vw, 146px) - 36px), 160px) 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--videx-accent);
+  transition: background-color .3s ease;
+}
+
+.videx-activate {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.videx-brand-button:focus-visible,
+.videx-activate:focus-visible {
+  outline: 3px solid #202020;
+  outline-offset: 6px;
+}
+
+.videx-activate:active {
+  outline: 2px solid #202020;
+  outline-offset: 4px;
+}
+
+.videx-eyes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: videx-glance 12.5s ease-in-out infinite;
+}
+
+.videx-eye {
+  position: absolute;
+  top: 39.7%;
+  width: 6.16%;
+  height: 20.55%;
+  border-radius: 999px;
+  background: #fff;
+  transform-origin: center;
+  animation: videx-blink 4.3s ease-in-out infinite;
+}
+
+.videx-eye:first-child { left: 31.85%; }
+.videx-eye:last-child { left: 59.25%; }
+
+.videx-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: clamp(120px, 20svh, 180px);
+  margin: clamp(32px, calc(26svh - min(30.4165vw, 146px)), 100px) 0 0;
+  padding: 20px 25px;
+  border-radius: 12px;
+  background: #eee;
+}
+
+.videx-caption-text {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  color: var(--videx-accent);
+  /* The reference orange on #eee is below 3:1, even for large bold text. */
+  color: color-mix(in srgb, var(--videx-accent) 90%, #000);
+  font-size: clamp(24px, 5.7vw, 28px);
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: -.035em;
+  text-align: center;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+  white-space: pre-line;
+  transition: color .3s ease;
+}
+
+@keyframes videx-glance {
+  0%, 16%, 91%, 100% { transform: translate(0, 0); }
+  26%, 34% { transform: translate(7%, -2%); }
+  47%, 56% { transform: translate(-7%, 1%); }
+  69%, 76% { transform: translate(2%, 3%); }
+}
+
+@keyframes videx-blink {
+  0%, 46%, 50%, 100% { transform: scaleY(1); }
+  48% { transform: scaleY(.075); }
+}
+
+@media (max-height: 570px) {
+  .videx-screen {
+    padding-top: max(12px, calc(env(safe-area-inset-top, 0px) + 12px));
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .videx-friend {
+    width: min(60.833vw, 40svh, 240px, 100%);
+    margin-top: 24px;
+  }
+
+  .videx-caption {
+    min-height: 112px;
+    margin-top: 24px;
+    padding: 20px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .videx-eyes, .videx-eye { animation: none; }
+  .videx-friend, .videx-caption-text { transition: none; }
+}
+
+@media (forced-colors: active) {
+  .videx-friend { background: Highlight; }
+  .videx-eye { background: HighlightText; }
+  .videx-caption { border: 1px solid CanvasText; }
+  .videx-caption-text { color: CanvasText; }
+  .videx-brand-button:focus-visible,
+  .videx-activate:focus-visible { outline-color: Highlight; }
+}
