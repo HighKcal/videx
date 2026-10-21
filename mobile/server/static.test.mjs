@@ -43,7 +43,9 @@ test('same port serves built assets with live CSP, no-store worker and no API ca
   assert.equal(await index.text(), '<!doctype html><title>fixture</title>');
   assert.equal(index.headers.get('content-type'), 'text/html; charset=utf-8');
   const csp = index.headers.get('content-security-policy');
-  for (const directive of ["default-src 'self'", "script-src 'self' 'wasm-unsafe-eval'", "style-src 'self' 'unsafe-inline'", "img-src 'self' blob: data:", "media-src 'self' blob:", "connect-src 'self' https://api.openai.com wss://videx.local", "worker-src 'self'", "frame-ancestors 'none'", "object-src 'none'"]) assert.ok(csp.includes(directive), directive);
+  for (const directive of ["default-src 'self'", "script-src 'self' 'wasm-unsafe-eval'", "style-src 'self' 'unsafe-inline'", "img-src 'self' blob: data:", "media-src 'self' blob:", "connect-src 'self'", "worker-src 'self'", "frame-ancestors 'none'", "object-src 'none'"]) assert.ok(csp.includes(directive), directive);
+  assert.equal(csp.includes('api.openai.com'), false);
+  assert.equal(csp.includes('wss:'), false);
   assert.equal(index.headers.get('x-content-type-options'), 'nosniff');
   assert.equal(index.headers.get('referrer-policy'), 'no-referrer');
   assert.equal(index.headers.get('permissions-policy'), 'camera=(), microphone=(), geolocation=()');

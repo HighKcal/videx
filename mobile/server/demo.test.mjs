@@ -28,8 +28,8 @@ test('explicit demo serves anonymous vision and speech without any access token'
   const calls = [];
   const url = await start(t, { fetcher: async (endpoint, options) => {
     calls.push({ endpoint, options });
-    return endpoint.endsWith('/responses')
-      ? Response.json({ output: [{ content: [{ type: 'output_text', text: '데모 인식' }] }] })
+    return endpoint.endsWith('/chat/completions')
+      ? Response.json({ choices: [{ message: { content: '{"text":"데모 인식"}' } }] })
       : new Response('synthetic-audio', { headers: { 'content-type': 'audio/mpeg' } });
   } });
   const health = await fetch(url + '/api/health');

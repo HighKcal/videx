@@ -30,3 +30,23 @@ it("rejects underexposure, overexposure and flat blurry frames; accepts detailed
     }
   expect(assessQuality(p, 64, 64).ok).toBe(true);
 });
+it("manual object confirmation retains main normalized duplicate threshold even for separately encoded sides", () => {
+  const session = new CaptureSession();
+  session.begin("object");
+  const quality = { ok: true, reason: "manual" };
+  session.accept("front", quality, Uint8Array.of(100, 100));
+  expect(() =>
+    session.accept(
+      "different-jpeg-same-side",
+      quality,
+      Uint8Array.of(110, 110),
+    ),
+  ).toThrow(/앞면과 같습니다/);
+  expect(session.stage).toBe("back");
+  session.accept("back", quality, Uint8Array.of(120, 120));
+  expect(session.stage).toBe("ready");
+  session.reset();
+  session.begin("object");
+  session.accept("new-front", quality, Uint8Array.of(120, 120));
+  expect(session.stage).toBe("back");
+});

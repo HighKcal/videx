@@ -1,6 +1,16 @@
 # VIDEX mobile v2 운영·구현 안내
 
-## 실행과 배포
+## Current target: Android USB CDC only
+
+This is the current architecture guidance for the CDC-only demo and supersedes the older WSS/BYOK setup and source descriptions below. Connect the Android app to the camera board through USB CDC and use physical buttons for capture/mode controls. No WSS transport is used. The browser UI does not ask for or hold an OpenAI API key or server access token. Do not use the legacy pairing-token/WSS or browser BYOK steps later in this historical document.
+
+The Node server serves the built app and same-origin API. Provider credentials and demo-mode selection are operator-only process configuration; see [`server-api.md`](server-api.md). The intended anonymous demo configuration may use `VIDEX_DEMO_MODE=true`; that removes bearer authentication but exposes operator-funded API calls to anonymous visitors. Exact Origin checks and quotas are not identity/authentication, and do not prevent all abuse or spend. Limit exposure and configure provider spending controls. Never place provider keys in the browser build or UI.
+
+Only a separately consented, explicitly selected still photo may be sent for image recognition. Any separate speech request carries text only. Continuous camera frames stay on the CDC/local path and are not relayed to the server. UI consent/cancellation behavior remains required. CDC-specific wire format, button semantics, and firmware compatibility are owned by the firmware work; defer to [`cdc-protocol.md`](cdc-protocol.md) once published rather than inferring details from the legacy descriptions below. Android/physical hardware and live provider behavior remain unverified unless a later validation record says otherwise.
+
+The remainder of this document describes the prior browser/WSS/direct-BYOK implementation and is retained as historical context only. It is not current CDC-only setup guidance.
+
+## Historical: prior WSS execution and deployment
 
 작업 루트: `/home/minwoo/.superset/projects/videx/mobile`.
 
@@ -17,7 +27,7 @@
 
 서비스 워커는 빌드의 해시된 JS/CSS/WASM과 index/manifest/icon만 설치 시 캐시한다. 임의 응답을 런타임 캐시에 추가하지 않는다. 정확한 same-origin GET 정적 경로만 처리하며 query/API POST/JPEG/OpenAI 요청은 제외한다. 정적 자산 lookup의 ignoreVary는 공개 불변 빌드 자산에만 적용한다. 설치 때와 모듈 fetch의 Origin/Vary 차이로 오프라인 JS가 누락되는 문제를 프로덕션 E2E로 재현 후 수정했다.
 
-## 실제 사용 순서
+## Historical: prior WSS/direct-BYOK usage sequence
 
 1. 메인 VIDEX 로고 → 진단/설정. 유효 TLS의 페어링된 S3와 같은 로컬 네트워크에 연결한다.
 2. 장치 토큰과 본인 소유 OpenAI 세션 키를 입력한다. 사진/음성 전송 동의는 별개이며 기본 비활성이다. OpenAI 없이도 로컬 보행 분석은 가능하다.
@@ -27,7 +37,7 @@
 6. LEFT 카메라 기본 회전은 cw90이다. 진단에서 none/cw90/ccw90/180을 선택할 수 있으며 보행/선택 이미지 모두 같은 변환을 사용한다. 변경하면 진행 촬영을 취소한다.
 7. 동의 철회/연결 종료/백그라운드 진입은 촬영과 TTS를 취소하고 API 키·토큰 참조·선택 이미지 세션을 버린다. 복귀 시 다시 페어링한다. 화면 잠금 중 감지를 보장하지 않는다.
 
-## 코어와 모듈 경계
+## Historical: prior core and module architecture
 
 - `src/core/wire.ts`: 정확한 VDX2/CAM2 길이·카메라·해상도·JPEG 경계 검증, 별도 원격 시각 보존. 서로 다른 장치 시계를 빼지 않는다.
 - `source.ts`: exact WSS/auth, 인증 전 frame 차단, epoch/serial 순서와 event_id 중복 제거, 최신 1프레임 버퍼, 32개 신뢰 제어 큐의 과부하 fail-closed, 4개 해상도 요청 상한과 6초 ACK timeout, 2초 stale/10초 무응답, 제한된 지수 재접속.
@@ -37,9 +47,9 @@
 - `scheduler.ts`/`walking.worker.ts`: 항상 보행에 최신 프레임 제공, Worker에서 JPEG 디코드/회전/축소/비전 분석. initializeVision을 기다리고 실제 runtime wasm/javascript를 진단에 표시한다. 오래된 세대의 ready/result를 무시하고 처리 지연/Worker 오류는 UNKNOWN이다.
 - `feedback.ts`: 장애물 > 고장 > 인식 > 일반 안내. 높은 우선순위 선점·취소, bounded 대기 큐와 만료 필터. 네트워크 timeout 15초, 메타데이터 미확보 재생 watchdog 60초. loadedmetadata/durationchange 뒤 실제 남은 길이+15초 여유로 연장하되 재생 시작부터 유한 상한 15분. 120초 정상 음성을 60초에서 중단하지 않는 테스트가 있다. 텍스트는 4000자까지 전달하며 이 한계 이상은 잘린다. 기기 대체는 명시 동의한 경우 localService=true인 한국어 음성만 선택한다. 음성 실패/중단/종료에 audio src 해제 및 Blob URL revoke를 수행한다.
 
-## OpenAI 인증의 실제 한계와 출시 게이트
+## Historical: prior OpenAI auth and release gates
 
-### Current guidance: server-default mode (supersedes the historical direct-only snapshot below)
+### Historical server-default browser mode (superseded by CDC-only target above)
 
 The current default AI mode sends only a user-selected still image for OCR/object recognition, and separately consented recognition/screen text for speech, through the operator's own backend to OpenAI. It does not send continuous frames or walking-analysis data; USB and continuous walking analysis remain local. TTS receives text only, never the image. The browser's `VIDEX_ACCESS_TOKEN` authenticates to the VIDEX backend and is not an OpenAI API key; `OPENAI_API_KEY` stays server-side. A single personal/shared bearer token is not full public multi-user authentication. Keep the service in a trusted deployment boundary unless a reviewed user identity/authorization and abuse-control design is added. See backend-owned [`server-api.md`](server-api.md) for configuration, exact allowed-origin policy, API contract, and operations.
 

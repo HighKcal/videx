@@ -78,3 +78,16 @@ export function packet(
   bytes.set([255, 216, 255, 217], 28);
   return bytes;
 }
+export function controlPacket(value: object, epoch = 7, kind = 2) {
+  const payload = new TextEncoder().encode(JSON.stringify(value));
+  const bytes = new Uint8Array(16 + payload.length),
+    d = new DataView(bytes.buffer);
+  bytes.set([85, 83, 66, 50, 1, kind, 0, 0]);
+  d.setUint32(8, payload.length, true);
+  d.setUint32(12, epoch, true);
+  bytes.set(payload, 16);
+  return bytes;
+}
+export function commandValue(bytes: Uint8Array) {
+  return JSON.parse(new TextDecoder().decode(bytes.subarray(16)));
+}

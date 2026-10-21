@@ -10,11 +10,16 @@ export interface Cam2Frame {
   jpeg: Uint8Array<ArrayBuffer>;
 }
 // Legacy metadata is a repeated LAST result, not an event counter.
+export type ButtonDecision =
+  | "no-metadata" | "baseline" | "repeat" | "press"
+  | "accepted" | "unclassified-release" | "inactive" | "frame-ignored";
 export class Cam2Buttons {
+  decision: ButtonDecision = "baseline";
   private pressed?: boolean;
   private downAt?: number;
   private lastAt?: number;
   reset() {
+    this.decision = "baseline";
     this.pressed = undefined;
     this.downAt = undefined;
     this.lastAt = undefined;
@@ -28,10 +33,15 @@ export class Cam2Buttons {
     this.lastAt = now;
     if (!(frame.flags & 2)) {
       this.reset();
+      this.decision = "no-metadata";
       return;
     }
     const pressed = !!(frame.flags & 1);
-    if (this.pressed === false && pressed) this.downAt = now;
+    this.decision = this.pressed === undefined ? "baseline" : "repeat";
+    if (this.pressed === false && pressed) {
+      this.downAt = now;
+      this.decision = "press";
+    }
     let event: "button_short" | "button_long" | undefined;
     if (this.pressed && !pressed && this.downAt !== undefined) {
       if (frame.flags & 4)
@@ -42,6 +52,9 @@ export class Cam2Buttons {
               ? "button_long"
               : undefined;
       else event = now - this.downAt >= 1000 ? "button_long" : "button_short";
+      this.decision = event ? "accepted" : "unclassified-release";
+    } else if (this.pressed && !pressed) {
+      this.decision = "baseline";
     }
     if (!pressed) this.downAt = undefined;
     this.pressed = pressed;
@@ -60,7 +73,12 @@ export class Cam2Parser {
     this.used = 0;
     this.started = undefined;
   }
-  feed(data: Uint8Array, now: number, emit: (frame: Cam2Frame) => void) {
+  feed(
+    data: Uint8Array,
+    now: number,
+    emit: (frame: Cam2Frame) => void,
+    control: (record: UsbControlRecord) => void = () => {},
+  ) {
     let offset = 0;
     do {
       const count = Math.min(
@@ -70,7 +88,7 @@ export class Cam2Parser {
       this.buffer.set(data.subarray(offset, offset + count), this.used);
       this.used += count;
       offset += count;
-      this.parse(now, emit);
+      this.parse(now, emit, control);
     } while (offset < data.length);
   }
   private discard(count: number) {
@@ -78,7 +96,11 @@ export class Cam2Parser {
     this.used -= count;
     this.started = undefined;
   }
-  private parse(now: number, emit: (frame: Cam2Frame) => void) {
+  private parse(
+    now: number,
+    emit: (frame: Cam2Frame) => void,
+    control: (record: UsbControlRecord) => void,
+  ) {
     const a = this.buffer,
       d = new DataView(a.buffer);
     while (this.used >= 4) {
@@ -86,9 +108,10 @@ export class Cam2Parser {
       while (
         offset <= this.used - 4 &&
         !(
-          a[offset] === 67 &&
-          a[offset + 1] === 65 &&
-          a[offset + 2] === 77 &&
+          ((a[offset] === 67 && a[offset + 1] === 65 && a[offset + 2] === 77) ||
+            (a[offset] === 85 &&
+              a[offset + 1] === 83 &&
+              a[offset + 2] === 66)) &&
           a[offset + 3] === 50
         )
       )
@@ -98,6 +121,46 @@ export class Cam2Parser {
         continue;
       }
       this.started ??= now;
+      if (a[0] === 85) {
+        if (now - this.started >= 500) throw Error("USB2 partial timeout");
+        if (this.used < 16) return;
+        const size = d.getUint32(8, true),
+          epoch = d.getUint32(12, true);
+        if (
+          a[4] !== 1 ||
+          a[5] !== 2 ||
+          d.getUint16(6, true) !== 0 ||
+          size < 1 ||
+          size > 255 ||
+          epoch === 0
+        )
+          throw Error("USB2 header");
+        if (this.used < 16 + size) return;
+        const text = new TextDecoder("utf-8", { fatal: true }).decode(
+          a.subarray(16, 16 + size),
+        );
+        const value = JSON.parse(text);
+        // Controls are flat objects. Tokenize whole strings (including escapes),
+        // not substrings within a value, so duplicate keys cannot hide in JSON.
+        const keys = new Set<string>();
+        for (const match of text.matchAll(/"(?:[^"\\]|\\.)*"/g)) {
+          if (
+            !text
+              .slice(match.index! + match[0].length)
+              .trimStart()
+              .startsWith(":")
+          )
+            continue;
+          const key = JSON.parse(match[0]) as string;
+          if (keys.has(key)) throw Error("USB2 duplicate key");
+          keys.add(key);
+        }
+        if (!value || typeof value !== "object" || Array.isArray(value))
+          throw Error("USB2 JSON");
+        this.discard(16 + size);
+        control({ epoch, value });
+        continue;
+      }
       if (now - this.started >= 6000) {
         this.discard(1);
         continue;
@@ -168,4 +231,47 @@ export class Cam2Parser {
       emit(frame);
     }
   }
+}
+
+export interface UsbControlRecord {
+  epoch: number;
+  value: Record<string, unknown>;
+}
+export function encodeCommand(
+  value:
+    | { type: "hello" }
+    | { type: "ping" }
+    | { type: "resolution"; request_id: string; mode: 0 | 1 | 2 },
+  epoch: number,
+): Uint8Array<ArrayBuffer> {
+  const keys =
+    value.type === "resolution" ? ["type", "request_id", "mode"] : ["type"];
+  if (
+    !["hello", "ping", "resolution"].includes(value.type) ||
+    Object.keys(value).length !== keys.length ||
+    keys.some((key) => !Object.hasOwn(value, key))
+  )
+    throw Error("USB2 command fields");
+  if (
+    !Number.isInteger(epoch) ||
+    epoch < 0 ||
+    epoch > 0xffffffff ||
+    (value.type === "hello" ? epoch !== 0 : epoch === 0)
+  )
+    throw Error("USB2 epoch");
+  if (
+    value.type === "resolution" &&
+    (!/^[A-Za-z0-9_-]{1,64}$/.test(value.request_id) ||
+      ![0, 1, 2].includes(value.mode))
+  )
+    throw Error("USB2 command");
+  const payload = new TextEncoder().encode(JSON.stringify(value));
+  if (payload.length < 1 || payload.length > 255) throw Error("USB2 length");
+  const bytes = new Uint8Array(16 + payload.length),
+    d = new DataView(bytes.buffer);
+  bytes.set([85, 83, 66, 50, 1, 1, 0, 0]);
+  d.setUint32(8, payload.length, true);
+  d.setUint32(12, epoch, true);
+  bytes.set(payload, 16);
+  return bytes;
 }

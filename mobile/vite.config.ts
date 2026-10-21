@@ -1,9 +1,6 @@
 import { defineConfig } from "vitest/config";
 import { createHash } from "node:crypto";
-import deployment from "./deployment.config.json" with { type: "json" };
-if (!/^[a-zA-Z0-9.-]+(?::[0-9]+)?$/.test(deployment.deviceHost))
-  throw Error("Invalid public deviceHost");
-const csp = `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src blob:; connect-src 'self' https://api.openai.com wss://${deployment.deviceHost}; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'`;
+const csp = `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src blob:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'`;
 export default defineConfig({
   test: { include: ["tests/**/*.test.ts"], maxWorkers: 1 },
   server: {

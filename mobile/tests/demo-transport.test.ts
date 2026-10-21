@@ -12,7 +12,7 @@ it("only explicit healthy demo discovery permits tokenless requests and omits Au
   );
   const ai = new OpenAITransport(fetcher as typeof fetch);
   expect(await ai.refreshHealth(signal())).toBe(false);
-  ai.configure("ignored-in-demo", true, false);
+  ai.configure(true, false);
   expect(await ai.vision(image, "ocr", signal())).toBe("demo result");
   const [healthUrl, healthOptions] = fetcher.mock.calls[0] as any;
   expect(healthUrl).toBe("/api/health");
@@ -40,9 +40,13 @@ it("fails closed for absent, malformed, unavailable and old health responses", a
     const fetcher = vi.fn(async () => Response.json(health));
     const ai = new OpenAITransport(fetcher as typeof fetch);
     expect(await ai.refreshHealth(signal())).toBe(true);
-    ai.configure("", true, true);
-    await expect(ai.vision(image, "ocr", signal())).rejects.toThrow();
-    await expect(ai.speech("text", signal())).rejects.toThrow();
+    ai.configure(true, true);
+    await expect(ai.vision(image, "ocr", signal())).rejects.toThrow(
+      "운영자 설정 오류 · VIDEX_DEMO_MODE=true 및 서버 설정을 확인하세요",
+    );
+    await expect(ai.speech("text", signal())).rejects.toThrow(
+      "운영자 설정 오류 · VIDEX_DEMO_MODE=true 및 서버 설정을 확인하세요",
+    );
     expect(fetcher).toHaveBeenCalledTimes(1);
   }
   for (const response of [
@@ -60,11 +64,11 @@ it("fails closed for absent, malformed, unavailable and old health responses", a
       vi.fn(async () => response()) as typeof fetch,
     );
     expect(await ai.refreshHealth(signal())).toBe(true);
-    ai.configure("", true, true);
+    ai.configure(true, true);
     await expect(ai.speech("text", signal())).rejects.toThrow();
   }
 });
-it("retains independent consent gates in demo and still requires a direct BYOK key", async () => {
+it("retains independent consent gates in anonymous demo mode", async () => {
   const fetcher = vi.fn(async (url: any) =>
     url === "/api/health"
       ? Response.json({ ready: true, authRequired: false })
@@ -72,7 +76,7 @@ it("retains independent consent gates in demo and still requires a direct BYOK k
   );
   const ai = new OpenAITransport(fetcher as typeof fetch);
   await ai.refreshHealth(signal());
-  ai.configure("", false, true);
+  ai.configure(false, true);
   await expect(ai.vision(image, "ocr", signal())).rejects.toThrow(
     /^전송 동의가 필요합니다$/,
   );
@@ -80,10 +84,7 @@ it("retains independent consent gates in demo and still requires a direct BYOK k
   expect(
     new Headers((fetcher.mock.calls[1] as any)[1].headers).has("authorization"),
   ).toBe(false);
-  ai.configure("", true, false);
-  await expect(ai.speech("text", signal())).rejects.toThrow();
-  ai.configure("", true, true, "direct");
-  await expect(ai.vision(image, "ocr", signal())).rejects.toThrow();
+  ai.configure(true, false);
   await expect(ai.speech("text", signal())).rejects.toThrow();
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
@@ -101,7 +102,7 @@ it("reverts to auth-required on refresh and ignores an older late demo confirmat
       }),
   );
   const older = ai.refreshHealth(signal());
-  ai.configure("", true, true);
+  ai.configure(true, true);
   await expect(ai.speech("text", signal())).rejects.toThrow();
   fetcher.mockResolvedValueOnce(
     Response.json({ ready: true, authRequired: true }),
@@ -111,6 +112,33 @@ it("reverts to auth-required on refresh and ignores an older late demo confirmat
   expect(await older).toBe(true);
   await expect(ai.vision(image, "ocr", signal())).rejects.toThrow();
 });
+it("keeps the newest ready discovery when an older discovery fails late", async () => {
+  let rejectOld!: (error: Error) => void;
+  const fetcher = vi.fn(async (url: any): Promise<Response> =>
+    url === "/api/health"
+      ? Response.json({ ready: true, authRequired: false })
+      : Response.json({ text: "latest" }),
+  );
+  const ai = new OpenAITransport(fetcher as typeof fetch);
+  fetcher.mockImplementationOnce(
+    () =>
+      new Promise((_resolve, reject) => {
+        rejectOld = reject;
+      }),
+  );
+  const older = ai.refreshHealth(signal());
+  expect(await ai.refreshHealth(signal())).toBe(false);
+  rejectOld(Error("PRIVATE_OLD_HEALTH_FAILURE"));
+  expect(await older).toBe(false);
+  ai.configure(true, false);
+  expect(await ai.vision(image, "ocr", signal())).toBe("latest");
+  expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+    "/api/health",
+    "/api/health",
+    "/api/vision",
+  ]);
+});
+
 it("does not accept an aborted demo discovery", async () => {
   const abort = new AbortController();
   const ai = new OpenAITransport(
@@ -121,19 +149,17 @@ it("does not accept an aborted demo discovery", async () => {
   );
   expect(await ai.refreshHealth(abort.signal)).toBe(true);
 });
-it("keeps explicit demo authentication separate from backend readiness", async () => {
+it("reports an operator setup error when explicit demo is not ready", async () => {
   const fetcher = vi.fn(async (url: any) =>
     url === "/api/health"
       ? Response.json({ ready: false, authRequired: false })
       : Response.json({ error: "Service unavailable" }, { status: 503 }),
   );
   const ai = new OpenAITransport(fetcher as typeof fetch);
-  expect(await ai.refreshHealth(signal())).toBe(false);
-  ai.configure("", true, true);
+  expect(await ai.refreshHealth(signal())).toBe(true);
+  ai.configure(true, true);
   await expect(ai.speech("text", signal())).rejects.toThrow(
-    "서버 사용 불가 (503)",
+    "운영자 설정 오류 · VIDEX_DEMO_MODE=true 및 서버 설정을 확인하세요",
   );
-  expect(
-    new Headers((fetcher.mock.calls[1] as any)[1].headers).has("authorization"),
-  ).toBe(false);
+  expect(fetcher).toHaveBeenCalledTimes(1);
 });

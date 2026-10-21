@@ -5,10 +5,24 @@ interface Message {
   priority: Priority;
   at: number;
 }
+function* speechChunks(text: string, limit: number) {
+  for (let start = 0; start < text.length;) {
+    let end = Math.min(start + limit, text.length);
+    if (end < text.length && /[\uD800-\uDBFF]/.test(text[end - 1])) end--;
+    yield text.slice(start, end);
+    start = end;
+  }
+}
 export class FeedbackManager {
   private output?: HTMLAudioElement;
   /** Call only in a real click/submit gesture; browsers may still require a retry. */
   enableAudio() {
+    if (!this.remoteSpeech) {
+      if (typeof window !== "undefined") window.speechSynthesis?.resume();
+      this.status = "기기 음성 사용 · 한국어 로컬 음성/브라우저 권한 확인";
+      this.changed();
+      return;
+    }
     if (this.current) return;
     this.cleanup();
     const bytes = new Uint8Array(844),
@@ -55,6 +69,7 @@ export class FeedbackManager {
   private recent = new Map<string, number>();
   private release?: () => void;
   localFallback = false;
+  remoteSpeech = false;
   status = "음성 대기";
   constructor(
     private ai: OpenAITransport,
@@ -84,75 +99,87 @@ export class FeedbackManager {
     let networkTimer: ReturnType<typeof setTimeout> | undefined;
     let playbackTimer: ReturnType<typeof setTimeout> | undefined;
     try {
-      this.status = "OpenAI AI 음성 생성 중";
-      this.changed();
-      const blob = await Promise.race([
-        this.ai.speech(message.text, controller.signal),
-        new Promise<never>((_, reject) => {
-          networkTimer = setTimeout(() => {
-            reject(Error("음성 생성 시간 초과"));
-            controller.abort();
-          }, 15000);
-        }),
-      ]);
-      clearTimeout(networkTimer);
-      if (controller.signal.aborted) return;
-      const url = (this.url = URL.createObjectURL(blob));
-      const audio = (this.audio = this.output ??= new Audio());
-      audio.src = url;
-      this.status = "OpenAI AI 음성 재생 중";
-      this.changed();
-      await new Promise<void>((resolve, reject) => {
-        this.release = resolve;
-        audio.onended = () => resolve();
-        audio.onerror = () => reject(Error("오디오 재생 실패"));
-        const startedAt = performance.now();
-        // Metadata-free playback retains the bounded 60s fallback. A finite
-        // duration extends it for long OCR, but never beyond 15 minutes total.
-        const updateWatchdog = () => {
-          clearTimeout(playbackTimer);
-          const elapsed = performance.now() - startedAt;
-          const durationMs =
-            Number.isFinite(audio.duration) && audio.duration > 0
-              ? Math.max(0, audio.duration - (audio.currentTime || 0)) * 1000 +
-                15000
-              : 60000;
-          const remaining = Math.max(
-            0,
-            Math.min(900000 - elapsed, Math.max(60000, durationMs)),
-          );
+      if (!this.remoteSpeech) {
+        await this.playLocal(message.text, controller.signal);
+        if (this.current?.controller === controller)
+          this.status = "기기 음성 완료";
+        return;
+      }
+      for (const part of speechChunks(message.text, 4000)) {
+        controller.signal.throwIfAborted();
+        this.status = "OpenAI AI 음성 생성 중";
+        this.changed();
+        const blob = await Promise.race([
+          this.ai.speech(part, controller.signal),
+          new Promise<never>((_, reject) => {
+            networkTimer = setTimeout(() => {
+              reject(Error("음성 생성 시간 초과"));
+              controller.abort();
+            }, 15000);
+          }),
+        ]);
+        clearTimeout(networkTimer);
+        if (controller.signal.aborted) return;
+        const url = (this.url = URL.createObjectURL(blob));
+        const audio = (this.audio = this.output ??= new Audio());
+        audio.src = url;
+        this.status = "OpenAI AI 음성 재생 중";
+        this.changed();
+        await new Promise<void>((resolve, reject) => {
+          this.release = resolve;
+          audio.onended = () => resolve();
+          audio.onerror = () => reject(Error("오디오 재생 실패"));
+          const startedAt = performance.now();
+          // Metadata-free playback retains the bounded 60s fallback. A finite
+          // duration extends it for long OCR, but never beyond 15 minutes total.
+          const updateWatchdog = () => {
+            clearTimeout(playbackTimer);
+            const elapsed = performance.now() - startedAt;
+            const durationMs =
+              Number.isFinite(audio.duration) && audio.duration > 0
+                ? Math.max(0, audio.duration - (audio.currentTime || 0)) *
+                    1000 +
+                  15000
+                : 60000;
+            const remaining = Math.max(
+              0,
+              Math.min(900000 - elapsed, Math.max(60000, durationMs)),
+            );
+            playbackTimer = setTimeout(
+              () => reject(Error("오디오 재생 시간 초과")),
+              remaining,
+            );
+          };
+          audio.onloadedmetadata = updateWatchdog;
+          audio.ondurationchange = updateWatchdog;
           playbackTimer = setTimeout(
-            () => reject(Error("오디오 재생 시간 초과")),
-            remaining,
+            () => reject(Error("오디오 메타데이터/재생 시간 초과")),
+            60000,
           );
-        };
-        audio.onloadedmetadata = updateWatchdog;
-        audio.ondurationchange = updateWatchdog;
-        playbackTimer = setTimeout(
-          () => reject(Error("오디오 메타데이터/재생 시간 초과")),
-          60000,
-        );
-        void audio.play().catch(reject);
-      });
+          void audio.play().catch(reject);
+        });
+        clearTimeout(playbackTimer);
+        this.cleanup();
+      }
       if (this.current?.controller === controller) this.status = "음성 완료";
     } catch {
       if (this.current?.controller === controller) {
-        this.status =
-          "OpenAI 음성 사용 불가 · 자막 확인 / 화면에서 음성 재생 활성화";
+        this.status = this.remoteSpeech
+          ? "OpenAI 음성 사용 불가 · 자막 확인 / 화면에서 음성 재생 활성화"
+          : "기기 한국어 음성 사용 불가 · 로컬 음성 설치/재생 권한 및 자막 확인";
         if (
+          this.remoteSpeech &&
           this.localFallback &&
-          typeof window !== "undefined" &&
-          "speechSynthesis" in window
+          !controller.signal.aborted
         ) {
-          const voice = window.speechSynthesis
-            .getVoices()
-            .find((v) => v.localService && v.lang.startsWith("ko"));
-          if (voice) {
-            const u = new SpeechSynthesisUtterance(message.text);
-            u.lang = "ko-KR";
-            u.voice = voice;
-            window.speechSynthesis.speak(u);
-            this.status = "기기 음성 대체 사용 중";
+          try {
+            this.cleanup();
+            await this.playLocal(message.text, controller.signal);
+            if (this.current?.controller === controller)
+              this.status = "기기 음성 완료";
+          } catch {
+            if (this.current?.controller === controller)
+              this.status = "기기 한국어 음성 사용 불가 · 자막 확인";
           }
         }
       }
@@ -169,6 +196,84 @@ export class FeedbackManager {
         const next = this.queue.sort((a, b) => b.priority - a.priority).shift();
         if (next) void this.play(next);
       }
+    }
+  }
+  private async playLocal(text: string, signal: AbortSignal) {
+    const synthesis =
+      typeof window !== "undefined" ? window.speechSynthesis : undefined;
+    const voices = synthesis?.getVoices() ?? [];
+    const isLocalKorean = (v: SpeechSynthesisVoice) =>
+      v.localService && v.lang.toLowerCase().startsWith("ko");
+    let voice = voices.find(isLocalKorean);
+    // Browser voice discovery can be asynchronous; never wait indefinitely or
+    // substitute a cloud voice. Cancellation removes the listener immediately.
+    if (synthesis && !voices.length && synthesis.addEventListener) {
+      signal.throwIfAborted();
+      this.status = "기기 음성 목록 로딩 중 (최대 1.5초)";
+      this.changed();
+      voice = await new Promise<SpeechSynthesisVoice | undefined>(
+        (resolve, reject) => {
+          let settled = false;
+          let timer: ReturnType<typeof setTimeout>;
+          const finish = (found?: SpeechSynthesisVoice, error?: Error) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            synthesis.removeEventListener("voiceschanged", check);
+            signal.removeEventListener("abort", aborted);
+            if (error) reject(error);
+            else resolve(found);
+          };
+          const check = () => {
+            const found = synthesis.getVoices().find(isLocalKorean);
+            if (found) finish(found);
+          };
+          const aborted = () => finish(undefined, Error("cancelled"));
+          synthesis.addEventListener("voiceschanged", check);
+          signal.addEventListener("abort", aborted, { once: true });
+          timer = setTimeout(() => finish(), 1500);
+          check();
+        },
+      );
+    }
+    if (!synthesis || !voice || typeof SpeechSynthesisUtterance === "undefined")
+      throw Error("local voice unavailable");
+    for (const part of speechChunks(text, 1000)) {
+      signal.throwIfAborted();
+      this.status = "기기 음성 재생 중";
+      this.changed();
+      const utterance = new SpeechSynthesisUtterance(part);
+      utterance.lang = "ko-KR";
+      utterance.voice = voice;
+      await new Promise<void>((resolve, reject) => {
+        let timer: ReturnType<typeof setTimeout>;
+        let settled = false;
+        const finish = (error?: Error) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          utterance.onend = null;
+          utterance.onerror = null;
+          signal.removeEventListener("abort", aborted);
+          this.release = undefined;
+          if (error) reject(error);
+          else resolve();
+        };
+        const aborted = () => finish(Error("cancelled"));
+        this.release = () => finish();
+        utterance.onend = () => finish();
+        utterance.onerror = () => finish(Error("local playback failed"));
+        signal.addEventListener("abort", aborted, { once: true });
+        timer = setTimeout(() => {
+          synthesis.cancel();
+          finish(Error("local playback timeout"));
+        }, 120000);
+        try {
+          synthesis.speak(utterance);
+        } catch {
+          finish(Error("local playback failed"));
+        }
+      });
     }
   }
   private cleanup() {

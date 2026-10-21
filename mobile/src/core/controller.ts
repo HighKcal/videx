@@ -1,9 +1,12 @@
-import { S3FrameSource, type Pairing, type Control } from "./source";
-import { UsbFrameSource, type UsbProfile } from "./usb-source";
+import {
+  UsbFrameSource,
+  type Control,
+  type ButtonDiagnostics,
+} from "./usb-source";
 import type { Frame } from "./wire";
 import { WalkingScheduler } from "./scheduler";
 import { ModuleRegistry } from "./modules";
-import { OpenAITransport, type AIMode } from "./openai";
+import { OpenAITransport } from "./openai";
 import { FeedbackManager } from "./feedback";
 import { builtInModules, type ModuleHost } from "../modules/builtins";
 import type { VidexModule } from "./modules";
@@ -14,8 +17,9 @@ export class AppController {
   readonly feedback: FeedbackManager;
   readonly walking: WalkingScheduler;
   private listeners = new Set<() => void>();
-  private source?: S3FrameSource | UsbFrameSource;
+  private source?: UsbFrameSource;
   private latest?: Frame;
+  private previewBlocked?: Frame;
   private revision = 0;
   private generation = 0;
   private modeChain = Promise.resolve();
@@ -36,6 +40,12 @@ export class AppController {
     session: "idle",
     configured: false,
     rotation: "cw90" as Rotation,
+    button: null as ButtonDiagnostics | null,
+    buttonDispatch: null as {
+      type: Control["type"];
+      mode: string;
+      at: number;
+    } | null,
   };
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -44,6 +54,17 @@ export class AppController {
     };
   };
   snapshot = () => this.revision;
+  preview = () => ({
+    frame:
+      this.state.connection === "CONNECTED" &&
+      !this.pendingSelections &&
+      this.latest !== this.previewBlocked
+        ? this.latest
+        : undefined,
+    rotation: this.state.rotation,
+    version: this.generation,
+    connection: this.state.connection,
+  });
   private emit = () => {
     this.state.processed = this.walking?.processed ?? 0;
     this.state.dropped = this.walking?.dropped ?? 0;
@@ -84,16 +105,10 @@ export class AppController {
     for (const module of modules(host)) this.registry.register(module);
     this.modeChain = this.registry.init(host);
   }
-  configure(
-    pairing: Pairing | { transport: "usb"; profile: UsbProfile },
-    key: string,
-    imageConsent: boolean,
-    speechConsent: boolean,
-    fallback: boolean,
-    aiMode: AIMode = "server",
-  ) {
+  configure(imageConsent: boolean, speechConsent: boolean, fallback: boolean) {
     this.disconnect();
-    this.ai.configure(key, imageConsent, speechConsent, aiMode);
+    this.ai.configure(imageConsent, speechConsent);
+    this.feedback.remoteSpeech = speechConsent;
     this.feedback.localFallback = fallback;
     const callbacks: [
       (frame: Frame) => void,
@@ -107,6 +122,7 @@ export class AppController {
           this.epoch = frame.epoch;
           void this.setResolution();
         }
+        this.previewBlocked = undefined;
         this.latest = frame;
         this.state.input = `${frame.width}×${frame.height} · frame ${frame.frameId}`;
         this.registry.frame(frame);
@@ -116,6 +132,10 @@ export class AppController {
       (state) => {
         this.state.connection = state;
         if (state === "CONNECTED") {
+          // Negotiation may follow a final pre-hello CAM2 frame. Commit the
+          // session here so its first frame cannot enqueue a second mode write.
+          this.epoch = undefined;
+          this.latest = undefined;
           void this.setResolution();
           this.feedback.say("장치가 연결되었습니다.", 0);
         } else {
@@ -130,10 +150,15 @@ export class AppController {
         this.emit();
       },
     ];
-    this.source =
-      "transport" in pairing
-        ? new UsbFrameSource(pairing.profile, ...callbacks)
-        : new S3FrameSource(pairing, ...callbacks);
+    this.source = new UsbFrameSource(
+      ...callbacks,
+      undefined,
+      "legacy",
+      (value) => {
+        this.state.button = value;
+        this.emit();
+      },
+    );
     this.state.configured = true;
     this.state.error = "";
     void this.source.start();
@@ -150,6 +175,13 @@ export class AppController {
       this.feedback.say("보행 감지를 확인할 수 없습니다.", 2);
   }
   private control(event: Control) {
+    // Dispatch intent only. Existing module stage/error remains authoritative.
+    this.state.buttonDispatch = {
+      type: event.type,
+      mode: this.state.mode,
+      at: performance.now(),
+    };
+    this.emit();
     if (event.type === "button_long") void this.cycle();
     else if (event.type === "button_short") void this.capture();
   }
@@ -190,6 +222,7 @@ export class AppController {
       .finally(() => {
         this.pendingSelections--;
         this.announceWalking();
+        this.emit();
       });
     return this.modeChain;
   }
@@ -231,6 +264,8 @@ export class AppController {
     this.emit();
   }
   private invalidate() {
+    // Require a new received frame after a mode/rotation/session boundary.
+    this.previewBlocked = this.latest;
     this.generation++;
     this.resolutionReady = false;
     this.registry.cancel();
@@ -248,10 +283,13 @@ export class AppController {
   }
   disconnect() {
     this.state.configured = false;
+    this.feedback.remoteSpeech = false;
     this.ai.clear();
     this.feedback.clear();
     this.source?.stop();
     this.source = undefined;
+    this.state.button = null;
+    this.state.buttonDispatch = null;
     this.latest = undefined;
     this.epoch = undefined;
     this.invalidate();

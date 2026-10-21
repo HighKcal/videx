@@ -1,16 +1,16 @@
 # VIDEX v2
 
-Prototype assistive phone PWA for camera glasses: classic ESP32-CAM (one camera) → ESP32-S3 → paired phone over local authenticated WSS. Phone-side walking-obstacle analysis is continuous; OCR and product recognition are user-requested. Obstacle output is not distance or a safety guarantee.
+Current target: prototype Android assistive app connected to the board through USB CDC, with physical buttons for controls. No WSS transport and no browser OpenAI key/server-token UI. Any selected photo/text sent for AI processing uses the same-origin Node server; continuous capture remains on the CDC/local path. This is not safety-certified and does not promise distance, clear path, or background monitoring. Earlier WSS/BYOK material below is historical unless explicitly marked current.
 
 ## Start and configure
 
 - Quick entry: root [`README.md`](../../README.md). Existing Python desktop app instructions remain in [`README-DESKTOP.md`](../../README-DESKTOP.md); this v2 app is under `mobile/`.
 - Run UI development server in a provisioned Node environment: `cd mobile && npm run dev`. UI dev does not provision the device.
-- Configure exact DNS hostname at `mobile/deployment.config.json` (current `videx.local`), matching the device's valid TLS cert, Origin/Host allowlist and phone pairing. Stream only via `wss://<host>/ws`; the AI backend does not relay continuous video.
+- Follow [`android-usb-cdc.md`](android-usb-cdc.md) for current Android USB chooser guidance, noting that this document contains pre-migration details and must be checked against the frozen CDC protocol contract. Do not follow the historical WSS setup below for this target.
 - Firmware build from root with activated compatible ESP-IDF: `idf.py -C cam build`, `idf.py -C proxy build`. Provision per device offline; details in [`firmware.md`](firmware.md). Verify actual partition table before NVS flashing and keep all generated credentials outside git.
-- Current default AI mode sends only the user-selected still photo or recognized/screen text to the operator's own backend, which calls fixed OpenAI Vision/TTS endpoints. Continuous camera frames and walking analysis remain local; USB/local vision operation is not relayed. Separate consent is required for selected photo and text; speech receives text only. The backend's `VIDEX_ACCESS_TOKEN` is distinct from server-only `OPENAI_API_KEY`; neither belongs in frontend build configuration. A personal/shared bearer token is a service gate, not full public multi-user authentication. Keep deployment limited to a trusted environment unless a reviewed user identity/authorization and abuse-control layer exists. Direct OpenAI BYOK is an advanced opt-in mode. See backend-owned [`server-api.md`](server-api.md) for server setup and API details. Historical direct-only/BYOK statements below and in frozen handoffs describe the earlier implementation snapshot, not current default guidance.
+- AI transport is same-origin server-only: browser UI has no API key or access-token fields. Operator injects `OPENAI_API_KEY`, exact allowed origins and, for a deliberately anonymous demo, `VIDEX_DEMO_MODE=true` into the Node process. Demo access is anonymous and operator-funded; Origin and quotas are not user authentication or a guarantee against spend abuse. Keep exposure controlled and apply provider spending controls. See [`server-api.md`](server-api.md). Separately consented selected photos/text only may be relayed; no continuous frames. CDC protocol details are owned by firmware and will be specified in `cdc-protocol.md`; do not infer exact wire/control semantics from legacy docs.
 
-## Implementation, tests, and hardware status
+## Historical pre-CDC implementation, tests, and hardware snapshot
 
 - Mobile/core union tests and strict production build passed as reported: `format:check` 0, `npm test` 12 suites/31 tests, `build` 0, sandbox Playwright 4 pass, audit 0 vulnerabilities. Details in [`mobile-handoff.md`](mobile-handoff.md) and coordinator-owned [`coordinator-validation.md`](coordinator-validation.md).
 - Firmware handoff reports sanitized host C/Python (7 C executables, 9 Python, skip 0), S3 original build and CAM scratch-snapshot build pass. See [`firmware-handoff.md`](firmware-handoff.md).
@@ -19,6 +19,10 @@ Prototype assistive phone PWA for camera glasses: classic ESP32-CAM (one camera)
 - Physical board, trusted deployed WSS/public authentication, Android/iOS local-network/lifecycle/accessibility, live OpenAI and field performance remain hardware/release gates. Nothing here claims those are accepted.
 
 ## Documents
+
+- [Server setup and API security limits](server-api.md)
+- [CDC-only migration validation](cdc-only-validation.md)
+- [Firmware-owned CDC contract](cdc-protocol.md) (implementation status and protocol details are maintained by firmware owner)
 
 - [Requirements traceability](requirements.md)
 - [Validation and deployment procedure](validation.md)

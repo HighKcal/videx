@@ -54,3 +54,20 @@ body {
   outline: 3px solid #3978f6;
   outline-offset: 3px;
 }
+.camera-preview {
+  border: 1px solid #888;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 16px 0;
+}
+.camera-preview-image {
+  background: #202020;
+}
+.camera-preview canvas:not([hidden]) {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 60vh;
+  margin: auto;
+}

@@ -23,11 +23,7 @@ test("USB is explicit, needs no pairing token and reports unsupported without ne
   });
   await page.goto("/");
   await page.getByRole("button", { name: "VIDEX 진단 및 설정 열기" }).click();
-  await page.getByLabel("연결 방식").selectOption("usb");
   await expect(page.getByLabel("장치 페어링 토큰")).not.toBeVisible();
-  await expect(
-    page.getByText("v2 USB 미러는 읽기 전용", { exact: false }),
-  ).toBeVisible();
   await page.getByRole("button", { name: "USB 장치 선택 및 연결" }).click();
   await expect(page.getByTestId("connection")).toContainText("WebUSB 미지원");
   expect(external).toEqual([]);
@@ -41,6 +37,7 @@ test("real CAM2 parsing and JPEG worker processing through a simulated USB bound
       closed = false,
       disconnect: (event: any) => void;
     (window as any).usbWrites = [];
+    (window as any).usbWriteBytes = [];
     const d = {
       vendorId: 0x303a,
       productId: 0x1001,
@@ -88,14 +85,15 @@ test("real CAM2 parsing and JPEG worker processing through a simulated USB bound
       async transferOut(_ep: number, bytes: Uint8Array) {
         mode = bytes[0];
         (window as any).usbWrites.push(mode);
+        (window as any).usbWriteBytes.push(Array.from(bytes));
         return { status: "ok", bytesWritten: bytes.length };
       },
       async transferIn() {
         await new Promise((r) => setTimeout(r, 100));
         if (closed) throw Error("closed");
         const canvas = document.createElement("canvas");
-        canvas.width = mode === 2 ? 1280 : 320;
-        canvas.height = mode === 2 ? 1024 : 240;
+        canvas.width = [320, 640, 1280][mode] ?? 320;
+        canvas.height = [240, 480, 1024][mode] ?? 240;
         const ctx = canvas.getContext("2d")!;
         ctx.fillStyle = "#888";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -142,13 +140,15 @@ test("real CAM2 parsing and JPEG worker processing through a simulated USB bound
   });
   await page.goto("/");
   await page.getByRole("button", { name: "VIDEX 진단 및 설정 열기" }).click();
-  await page.getByLabel("연결 방식").selectOption("usb");
-  await page.getByLabel("S3 USB 펌웨어").selectOption("legacy");
+
   await page.getByRole("button", { name: "USB 장치 선택 및 연결" }).click();
   await expect(page.getByTestId("connection")).toHaveText("CONNECTED");
   await expect
     .poll(async () => Number(await page.getByTestId("processed").textContent()))
     .toBeGreaterThan(0);
+  await expect
+    .poll(() => page.evaluate(() => (window as any).usbWrites))
+    .toContain(0);
   await page.evaluate(() => ((window as any).usbPressed = true));
   await page.waitForTimeout(250);
   await page.evaluate(() => {
@@ -160,7 +160,13 @@ test("real CAM2 parsing and JPEG worker processing through a simulated USB bound
   ).toHaveAttribute("aria-pressed", "true");
   await expect
     .poll(() => page.evaluate(() => (window as any).usbWrites))
-    .toContain(2);
+    .toContain(1);
+  const writes: number[][] = await page.evaluate(
+    () => (window as any).usbWriteBytes,
+  );
+  expect(
+    writes.every((bytes) => bytes.length === 1 && [0, 1, 2].includes(bytes[0])),
+  ).toBe(true);
   await page.evaluate(() => (window as any).unplug());
   await expect(page.getByTestId("connection")).toContainText("USB 장치 분리");
   expect(posts).toEqual([]);
@@ -183,7 +189,7 @@ test("chooser is invoked during click activation; cancellation is actionable", a
   );
   await page.goto("/");
   await page.getByRole("button", { name: "VIDEX 진단 및 설정 열기" }).click();
-  await page.getByLabel("연결 방식").selectOption("usb");
+
   await page.getByRole("button", { name: "USB 장치 선택 및 연결" }).click();
   await expect(page.getByTestId("connection")).toContainText("USB 선택 취소");
   expect(await page.evaluate(() => (window as any).usbGesture)).toBe(true);

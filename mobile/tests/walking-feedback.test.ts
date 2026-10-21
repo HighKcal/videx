@@ -1,7 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { AppController } from "../src/core/controller";
-import { packet } from "./fixtures";
-import { parseFrame } from "../src/core/wire";
+import { frame } from "./frame-fixture";
 
 let controller: AppController;
 class TestWorker {
@@ -26,6 +25,7 @@ class TestWorker {
 function setup() {
   vi.stubGlobal("Worker", TestWorker);
   controller = new AppController();
+  controller.feedback.remoteSpeech = true; // Exercise the explicit remote priority path.
   // Keep real feedback priority/cancellation logic; only replace the network.
   const speech = vi.spyOn(controller.ai, "speech").mockImplementation(
     (_text, signal) =>
@@ -108,7 +108,7 @@ it.each(["object", "ocr"])(
     c.feedback.say("인식 결과", 1);
     const signal = speech.mock.lastCall![1];
     speech.mockClear();
-    c.registry.frame(parseFrame(packet(7, 1), performance.now()));
+    c.registry.frame(frame(7, 1));
     expect(worker.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: "frame" }),
       expect.any(Array),

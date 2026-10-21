@@ -18,6 +18,7 @@ it("preempts lower priority, aborts pending request, rejects late audio without 
   const urls = vi.spyOn(URL, "createObjectURL");
   const caption = vi.fn();
   const f = new FeedbackManager(ai as unknown as OpenAITransport, caption);
+  f.remoteSpeech = true;
   f.say("읽기", 1);
   f.say("장애물", 3);
   expect(pending[0].signal.aborted).toBe(true);
@@ -60,6 +61,7 @@ it("watchdogs hung audio and revokes URLs, allows only localService fallback voi
   const ai = { speech: vi.fn(async () => new Blob(["audio"])) };
   const f = new FeedbackManager(ai as unknown as OpenAITransport, vi.fn());
   f.localFallback = true;
+  f.remoteSpeech = true;
   f.say("test", 1);
   await vi.advanceTimersByTimeAsync(61000);
   expect(revoke).toHaveBeenCalled();
@@ -88,6 +90,7 @@ it("uses loaded duration for speech longer than sixty seconds and still cleans u
   const revoke = vi.spyOn(URL, "revokeObjectURL");
   const ai = { speech: vi.fn(async () => new Blob(["long audio"])) };
   const f = new FeedbackManager(ai as unknown as OpenAITransport, vi.fn());
+  f.remoteSpeech = true;
   f.say("긴 글 읽기", 1);
   await vi.advanceTimersByTimeAsync(0);
   const audio = audioInstances[0];
@@ -118,6 +121,7 @@ it("drains a live lower-priority item when the higher-priority queued item expir
   vi.stubGlobal("Audio", AudioMock);
   const ai = { speech: vi.fn(async () => new Blob(["audio"])) };
   const f = new FeedbackManager(ai as unknown as OpenAITransport, vi.fn());
+  f.remoteSpeech = true;
   f.say("현재 경고", 3);
   await vi.advanceTimersByTimeAsync(0);
   f.say("만료된 고장 안내", 2);

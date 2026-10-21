@@ -55,7 +55,7 @@ export function builtInModules(host: ModuleHost): VidexModule[] {
         source: "s3",
         permissions: ["s3-frames", "speech", "network:openai-image"],
         priority: "normal",
-        frame: { resolutionMode: 2 },
+        frame: { resolutionMode: 1 },
       },
       host,
       "ocr",
@@ -69,7 +69,7 @@ export function builtInModules(host: ModuleHost): VidexModule[] {
         source: "s3",
         permissions: ["s3-frames", "speech", "network:openai-image"],
         priority: "normal",
-        frame: { resolutionMode: 2 },
+        frame: { resolutionMode: 1 },
       },
       host,
       "object",
@@ -123,9 +123,10 @@ class RecognitionModule implements VidexModule {
       !frame ||
       performance.now() - frame.receivedAt > 2000 ||
       !this.host.ready() ||
-      frame.width !== 1280
+      frame.width !== 640 ||
+      frame.height !== 480
     ) {
-      this.host.say("고해상도 최신 영상을 기다려 주세요.", 2);
+      this.host.say("현재 모드의 새 640×480 영상을 기다려 주세요.", 2);
       return;
     }
     if (this.session.stage === "idle" || this.session.stage === "ready")
@@ -133,11 +134,15 @@ class RecognitionModule implements VidexModule {
     this.busy = true;
     const generation = this.generation,
       operation = (this.operation = new AbortController());
-    const timer = setTimeout(() => operation.abort(), 30000);
+    const timer = setTimeout(() => operation.abort(), 50000);
     try {
-      const selected = await selectFrame(frame, this.host.rotation());
+      const selected = await selectFrame(
+        frame,
+        this.host.rotation(),
+        this.kind === "ocr" ? 0.95 : 0.9,
+      );
       if (generation !== this.generation || operation.signal.aborted) return;
-      this.session.accept(selected.image, selected.quality);
+      this.session.accept(selected.image, selected.quality, selected.analysis);
       this.host.changed();
       if (this.session.stage === "back") {
         this.host.say(
@@ -158,8 +163,15 @@ class RecognitionModule implements VidexModule {
         operation.signal,
       );
       if (generation !== this.generation || operation.signal.aborted) return;
+      if (this.kind === "object" && text === "인식 실패")
+        throw Error("제품을 식별할 수 없습니다.");
       this.session.reset();
-      this.host.say(text, 1);
+      this.host.say(
+        this.kind === "object"
+          ? `인식된 제품은 ${text}입니다.`
+          : text || "인식된 글자가 없습니다.",
+        1,
+      );
     } catch (error) {
       if (generation === this.generation)
         this.host.error(error instanceof Error ? error.message : "인식 실패");

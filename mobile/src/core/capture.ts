@@ -41,6 +41,7 @@ export function assessQuality(
   return { ok: true, reason: "품질 확인" };
 }
 export class CaptureSession {
+  private frontAnalysis?: Uint8Array;
   kind: "ocr" | "object" = "ocr";
   stage: "idle" | "front" | "back" | "ready" = "idle";
   images: string[] = [];
@@ -49,22 +50,38 @@ export class CaptureSession {
     this.kind = kind;
     this.stage = "front";
   }
-  accept(image: string, quality: Quality) {
+  accept(image: string, quality: Quality, analysis?: Uint8Array) {
     if (!quality.ok) throw Error(quality.reason);
     if (!["front", "back"].includes(this.stage))
       throw Error("촬영 세션이 준비되지 않았습니다");
     if (this.images.includes(image))
       throw Error("앞면과 뒷면을 별도로 촬영하세요");
+    if (this.kind === "object" && this.frontAnalysis && analysis) {
+      if (analysis.length !== this.frontAnalysis.length)
+        throw Error("앞뒷면 이미지 크기가 다릅니다");
+      let difference = 0;
+      for (let i = 0; i < analysis.length; i++)
+        difference += Math.abs(analysis[i] - this.frontAnalysis[i]);
+      if (difference / analysis.length / 255 < 0.055)
+        throw Error("앞면과 같습니다. 물체를 뒤집어서 뒷면을 보여주세요");
+    }
+    if (this.kind === "object" && !this.images.length)
+      this.frontAnalysis = analysis;
     this.images.push(image);
     this.stage =
       this.kind === "object" && this.images.length === 1 ? "back" : "ready";
   }
   reset() {
+    this.frontAnalysis = undefined;
     this.images = [];
     this.stage = "idle";
   }
 }
-export async function selectFrame(frame: Frame, rotation: Rotation = "cw90") {
+export async function selectFrame(
+  frame: Frame,
+  rotation: Rotation = "cw90",
+  jpegQuality = 0.95,
+) {
   const bitmap = await createImageBitmap(
     new Blob([frame.jpeg], { type: "image/jpeg" }),
   );
@@ -81,16 +98,24 @@ export async function selectFrame(frame: Frame, rotation: Rotation = "cw90") {
     if (!ctx) throw Error("Canvas 사용 불가");
     drawOriented(ctx, bitmap, bitmap.width, bitmap.height, rotation);
     const sample = document.createElement("canvas");
-    sample.width = 320;
-    sample.height = Math.round((canvas.height * 320) / canvas.width);
+    sample.width = Math.min(160, canvas.width);
+    sample.height = Math.round((canvas.height * sample.width) / canvas.width);
     const sc = sample.getContext("2d", { willReadFrequently: true })!;
     sc.drawImage(canvas, 0, 0, sample.width, sample.height);
-    const quality = assessQuality(
-      sc.getImageData(0, 0, sample.width, sample.height).data,
-      sample.width,
-      sample.height,
-    );
-    return { image: canvas.toDataURL("image/jpeg", 0.9), quality };
+    const pixels = sc.getImageData(0, 0, sample.width, sample.height).data;
+    const analysis = new Uint8Array(sample.width * sample.height);
+    for (let i = 0; i < analysis.length; i++)
+      analysis[i] = Math.round(
+        pixels[i * 4] * 0.299 +
+          pixels[i * 4 + 1] * 0.587 +
+          pixels[i * 4 + 2] * 0.114,
+      );
+    // Main OCR and object manual confirmation do not enforce auto-quality scores.
+    return {
+      image: canvas.toDataURL("image/jpeg", jpegQuality),
+      quality: { ok: true, reason: "수동 촬영" },
+      analysis,
+    };
   } finally {
     bitmap.close();
   }
@@ -107,16 +132,18 @@ export async function mergeSides(images: string[]) {
         await createImageBitmap(new Blob([bytes], { type: "image/jpeg" })),
       );
     }
-    const h = Math.min(1024, Math.max(...bitmaps.map((b) => b.height)));
+    const h = Math.min(1200, Math.max(...bitmaps.map((b) => b.height)));
     const widths = bitmaps.map((b) => Math.round((b.width * h) / b.height));
+    const scale = Math.min(1, 1800 / (widths[0] + widths[1]));
     const c = document.createElement("canvas");
-    c.width = widths[0] + widths[1];
-    c.height = h;
+    c.width = Math.min(1800, widths[0] + widths[1]);
+    c.height = Math.max(1, Math.round(h * scale));
     const ctx = c.getContext("2d")!;
     ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, c.width, h);
-    ctx.drawImage(bitmaps[0], 0, 0, widths[0], h);
-    ctx.drawImage(bitmaps[1], widths[0], 0, widths[1], h);
+    ctx.fillRect(0, 0, c.width, c.height);
+    const leftWidth = Math.round(widths[0] * scale);
+    ctx.drawImage(bitmaps[0], 0, 0, leftWidth, c.height);
+    ctx.drawImage(bitmaps[1], leftWidth, 0, c.width - leftWidth, c.height);
     return c.toDataURL("image/jpeg", 0.9);
   } finally {
     bitmaps.forEach((b) => b.close());
