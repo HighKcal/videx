@@ -1,0 +1,42 @@
+
+> videx-mobile@2.0.0 test
+> vitest run tests/tts-streaming.test.ts
+
+
+ RUN  v5.0.5 /home/minwoo/.superset/worktrees/videx/feat/tts-streaming/mobile
+
+ ❯ tests/tts-streaming.test.ts (1 test | 1 failed) 334ms
+   × delivers speech chunks before EOF and awaits consumer backpressure 333ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/tts-streaming.test.ts > delivers speech chunks before EOF and awaits consumer backpressure
+AssertionError: expected [] to deeply equal [ [ 1, 2 ] ]
+
+- Expected
++ Received
+
+- [
+-   [
+-     1,
+-     2,
+-   ],
+- ]
++ []
+
+ ❯ vi.waitFor.timeout tests/tts-streaming.test.ts:20:43
+     18|   const pending = ai.speech("text", signal, consume);
+     19|   try {
+     20|     await vi.waitFor(() => expect(chunks).toEqual([[1, 2]]), { timeout…
+       |                                           ^
+     21|     upstream.enqueue(new Uint8Array([3]));
+     22|     await new Promise(resolve => setTimeout(resolve, 10));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  06:00:06
+   Duration  526ms (tests 81%, transform 14%, import 3%, worker 1%)
+

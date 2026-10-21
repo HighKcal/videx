@@ -156,7 +156,6 @@ class RecognitionModule implements VidexModule {
           ? await mergeSides(this.session.images)
           : this.session.images[0];
       if (generation !== this.generation || operation.signal.aborted) return;
-      this.host.say("선택 사진을 OpenAI로 전송해 인식 중입니다.", 1);
       const text = await this.host.ai.vision(
         image,
         this.kind,

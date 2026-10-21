@@ -1,0 +1,34 @@
+
+> videx-mobile@2.0.0 test
+> vitest run tests/progressive-speech.test.ts
+
+
+ RUN  v5.0.5 /home/minwoo/.superset/worktrees/videx/feat/tts-streaming/mobile
+
+ ❯ tests/progressive-speech.test.ts (9 tests | 1 failed) 582ms
+   × cancellation immediately releases a stalled request and cannot detach its successor 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/progressive-speech.test.ts > cancellation immediately releases a stalled request and cannot detach its successor
+AssertionError: expected 'OpenAI AI 음성 재생 중' to be '음성 대기' // Object.is equality
+
+Expected: "음성 대기"
+Received: "OpenAI AI 음성 재생 중"
+
+ ❯ tests/progressive-speech.test.ts:181:28
+    179|   expect(s.signal().aborted).toBe(true);
+    180|   expect(s.revoked).toContain(firstUrl);
+    181|   expect(s.manager.status).toBe("음성 대기");
+       |                            ^
+    182|   const pauses = s.audio.pause.mock.calls.length;
+    183|   s.audio.src = "blob:successor";
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 passed (9)
+   Start at  06:19:51
+   Duration  739ms (tests 93%, transform 4%, import 2%, worker 1%)
+

@@ -6,6 +6,7 @@ test.beforeEach(async ({ page }) => {
 });
 test("USB is explicit, needs no pairing token and reports unsupported without network video", async ({
   page,
+  baseURL,
 }) => {
   await page.addInitScript(() =>
     Object.defineProperty(navigator, "usb", {
@@ -16,7 +17,7 @@ test("USB is explicit, needs no pairing token and reports unsupported without ne
   const external: string[] = [];
   page.on("request", (r) => {
     if (
-      !r.url().startsWith("http://127.0.0.1:4173") &&
+      !r.url().startsWith(new URL(baseURL!).origin + "/") &&
       !r.url().startsWith("blob:")
     )
       external.push(r.url());

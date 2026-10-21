@@ -7,6 +7,12 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 it("preempts lower priority, aborts pending request, rejects late audio without leaking URLs", async () => {
+  vi.stubGlobal(
+    "Audio",
+    class {
+      pause = vi.fn();
+    },
+  );
   const pending: Array<{ signal: AbortSignal; resolve: (b: Blob) => void }> =
     [];
   const ai = {
@@ -132,6 +138,7 @@ it("drains a live lower-priority item when the higher-priority queued item expir
   expect(ai.speech).toHaveBeenLastCalledWith(
     "살아있는 인식 결과",
     expect.any(AbortSignal),
+    expect.any(Function),
   );
   f.clear();
 });

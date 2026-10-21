@@ -191,6 +191,10 @@ export const mp3 = Buffer.from(
 );
 export async function observeAudio(page: Page) {
   await page.addInitScript(() => {
+    // This byte-identity fixture observes complete Blob URLs. Exercise the
+    // unsupported-MSE path here; tts-streaming.spec.ts proves native MSE with
+    // a longer valid paced MP3 and unmodified Audio decoding/playback.
+    MediaSource.isTypeSupported = () => false;
     const w = window as any;
     w.audioEvidence = {
       ended: 0,

@@ -9,6 +9,68 @@ vi.mock("../src/core/capture", async () => {
   };
 });
 import { builtInModules, type ModuleHost } from "../src/modules/builtins";
+it.each([
+  ["ocr", false],
+  ["ocr", true],
+  ["object", false],
+  ["object", true],
+] as const)(
+  "%s omits request-progress feedback while preserving request/result/error (failure=%s)",
+  async (kind, failure) => {
+    capture.select.mockReset();
+    const say = vi.fn(),
+      error = vi.fn();
+    const vision = vi.fn(async () => {
+      if (failure) throw Error("인식 요청 실패");
+      return "인식 결과";
+    });
+    const host = {
+      ai: { vision },
+      walking: {},
+      frame: () => ({ width: 640, height: 480, receivedAt: performance.now() }),
+      ready: () => true,
+      rotation: () => "cw90",
+      say,
+      error,
+      changed: vi.fn(),
+    } as unknown as ModuleHost;
+    const module = builtInModules(host)[kind === "ocr" ? 1 : 2];
+    capture.select.mockResolvedValueOnce({
+      image: "front",
+      quality: { ok: true, reason: "" },
+    });
+    capture.select.mockResolvedValueOnce({
+      image: "back",
+      quality: { ok: true, reason: "" },
+    });
+    try {
+      await module.activate();
+      await module.onShort!();
+      if (kind === "object") await module.onShort!();
+      expect(vision).toHaveBeenCalledExactlyOnceWith(
+        kind === "ocr" ? "front" : "merged",
+        kind,
+        expect.any(AbortSignal),
+      );
+      const expected: Array<[string, number]> =
+        kind === "object"
+          ? [["앞면 촬영 완료. 물건의 뒷면을 보여주고 짧게 눌러 주세요.", 1]]
+          : [];
+      if (!failure)
+        expected.push([
+          kind === "ocr" ? "인식 결과" : "인식된 제품은 인식 결과입니다.",
+          1,
+        ]);
+      expect(say.mock.calls).toEqual(expected);
+      if (failure)
+        expect(error).toHaveBeenCalledExactlyOnceWith("인식 요청 실패");
+      else expect(error).not.toHaveBeenCalled();
+    } finally {
+      module.cancel?.();
+      capture.select.mockReset();
+    }
+  },
+);
 it.each(["제품명", "인식 실패"])(
   "main object manual result presentation: %s",
   async (result) => {

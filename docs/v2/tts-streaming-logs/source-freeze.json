@@ -1,0 +1,81 @@
+{
+  "task": "TTS-STREAM",
+  "sourceFrozen": true,
+  "generatedAt": "2026-10-21T21:26:12.882769+00:00",
+  "branch": "feat/tts-streaming",
+  "baseline": "8a9528a26ad91431a84aa6e035d2798d72c28c6d",
+  "sourceFileCount": 18,
+  "sourceSha256": {
+    "mobile/playwright.tts.config.ts": "ea8273c4a403014e07625e7fc2e7167f5e42877eb1e49fa79ddd3a9e6a02b4b3",
+    "mobile/server/server.mjs": "36b67da3ff78153bce51be6f76c84a40b124e5b3f49f2548b6f1a442e69bbe92",
+    "mobile/server/tts-delivery-timeout.test.mjs": "f25d01980b1a0cc3b49fe963ed8edc9cb3dab6f382b7208f16d40d8ef614c664",
+    "mobile/server/tts-streaming.test.mjs": "7ea715f7e6a10940ff3a77c9886fccb2ab3bf8a4c23e5f57ab28775b17cf4ab0",
+    "mobile/src/core/feedback.ts": "fc5a5d2526cb83c3722802299f44bb9918d272d7c3b354247b3cad33123d30fd",
+    "mobile/src/core/openai.ts": "c202f3452cd0b3cd44ee548f0c45590dde187e11f6dd4871fa2878e249476517",
+    "mobile/src/core/progressive-speech.ts": "b986265436046244181722c41b19e39262864882a5d394082d869869343866c2",
+    "mobile/src/modules/builtins.ts": "86612b37cd1b99f63a30133b82088de8ec9d2c2498a288de64bf1f09d74721ab",
+    "mobile/tests/e2e/cdc-fixtures.ts": "a813ddc759f4becaa29f27a57cfaea1d64398d4fca172d39cedb1a946aaa3a1c",
+    "mobile/tests/e2e/tts-isolated-server.mjs": "d118c0e030954d8ade1bb3c6ec7cd7eec5e5237bcd748184f4dd9de9368fad30",
+    "mobile/tests/e2e/tts-streaming.spec.ts": "f733a3eb9126bfbefc7c1a4a8c8db1f82ad2c78bf6339a2609d34660767ce75b",
+    "mobile/tests/e2e/usb.spec.ts": "c6ca18add7efe0f2364191e1030412b41a4ec015125093a3911a94b35405371f",
+    "mobile/tests/feedback.test.ts": "6108fb08dd24e7e2d7d256ded30e8ed7721e14a956730920225e96d7fddf7a07",
+    "mobile/tests/progressive-speech.test.ts": "bb5252b6a0c7e784e045802eb1650ed7552e8548010979d47af4861af8c1416f",
+    "mobile/tests/recognition.test.ts": "e50d780f27b2cabeb766c22ee4d5e4c10d0e31d0524067e0a178937cde2d9c9a",
+    "mobile/tests/server-transport.test.ts": "1079a178c5e9529f95d47990c458493b89a4bc3ce36655289f05493d71db3dd0",
+    "mobile/tests/tts-streaming.test.ts": "ee00723e8bbf03604accbf62fc1264febd64329c4bd4aeb8b69ed3b139f56c53",
+    "mobile/tests/walking-feedback.test.ts": "3520ff4f08ad964df75105bfdb525d1613a50e2ece84f9fe3bd08e1d25bcbcc3"
+  },
+  "distSha256": {
+    "mobile/dist/_headers": "e73b43e4d29d02a12ec4a561b22763f883c51fda2fa0896c96126c467b6b0645",
+    "mobile/dist/assets/flood_fill-CijwzEMq.wasm": "12fec71860403e0cbbb44222377249ac6cfefe99ab912ab731d1fdbe1666aecf",
+    "mobile/dist/assets/index-Borgump_.css": "933641997569693d6231a7ef8b51f4ca0062c04c03a29693fc161fc2c253c408",
+    "mobile/dist/assets/index-ogUS7lAY.js": "e7a33e4fd6797c88e6dc0f82bff6ba98b350ab96efe5cc3dc56b81d87b3ba22a",
+    "mobile/dist/assets/walking.worker-OWzXsEsg.js": "67f20494ab699bdb0b3bba815d87ad36ca90f578ef14f1b85daeb2510e19959c",
+    "mobile/dist/icon.svg": "52871b1fe58a05ae00943f8071d8b52fa7231eafc980068c9630418a701c3006",
+    "mobile/dist/index.html": "841723375a60910e95011de52f1080e878d46b8dc848132eb3b9435d6813c5e2",
+    "mobile/dist/manifest.webmanifest": "4d26e0ad09e511623f391c06365e000ae84adf1e6f45bf2b42cfe835b4b7da37",
+    "mobile/dist/sw.js": "e15dc30a0ce80d075cd5dda31232cc76d5ebd2246fea4b8cb064916d031d4a95"
+  },
+  "verified": {
+    "units": 164,
+    "server": 40,
+    "playwright": 25,
+    "buildExit": 0,
+    "ownedFormatExit": 0,
+    "gitDiffCheckExit": 0,
+    "fullFormatExit": 1
+  },
+  "measurements": [
+    {
+      "mode": "progressive-mse",
+      "mp3Bytes": 32435,
+      "calls": 1,
+      "upstreamStart": 1792617940317,
+      "upstreamEnd": 1792617942569,
+      "firstPlaying": 1792617940577,
+      "firstAdvance": 1792617940825,
+      "playbackEnded": 1792617944801,
+      "startMs": 508,
+      "upstreamEndMs": 2252,
+      "currentTimeAtFirstObservation": 0.429212,
+      "chrome": "155.0.8059.84",
+      "leadBeforeUpstreamEndMs": 1744
+    },
+    {
+      "mode": "buffered-baseline",
+      "mp3Bytes": 32435,
+      "calls": 1,
+      "upstreamStart": 1792617945317,
+      "upstreamEnd": 1792617947570,
+      "firstPlaying": 1792617947582,
+      "firstAdvance": 1792617947840,
+      "playbackEnded": 1792617951690,
+      "startMs": 2523,
+      "upstreamEndMs": 2253,
+      "currentTimeAtFirstObservation": 0.541297,
+      "chrome": "155.0.8059.84",
+      "leadBeforeUpstreamEndMs": -270
+    }
+  ],
+  "scope": "No paid provider/physical Android; no live proxy, firmware, production dist, commit/push/merge/restart; source frozen before final documentation"
+}

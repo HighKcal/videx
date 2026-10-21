@@ -1,0 +1,14 @@
+✔ slow TCP consumer backpressures upstream pulls, keeps its slot and disconnect cancels the reader (217.874549ms)
+ℹ {"pausedPulls":42,"maximumBytesRead":2752512,"cancelled":true,"releasedStatus":200}
+✔ post-header overflow destroys MPEG stream, cancels upstream and releases slot without JSON (9.328904ms)
+✔ post-header timeout destroys MPEG stream, cancels upstream and releases slot without JSON (104.974158ms)
+✔ post-header error destroys MPEG stream, cancels upstream and releases slot without JSON (5.17475ms)
+✔ relays the first bytes before upstream EOF without content-length or buffering (3.607259ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 723.540816

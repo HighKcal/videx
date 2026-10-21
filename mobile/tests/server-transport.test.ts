@@ -48,7 +48,8 @@ it("sends only consented text anonymously and rejects non-MPEG responses", async
   const [url, options] = fetcher.mock.calls[0] as any;
   expect(url).toBe("/api/speech");
   expect(JSON.parse(options.body)).toEqual({ text: "안녕" });
-  expect(options.signal).toBe(requestSignal);
+  expect(options.signal).toBeInstanceOf(AbortSignal);
+  expect(options.signal.aborted).toBe(false);
   expect([...new Headers(options.headers).keys()]).toEqual(["content-type"]);
   expect(options).toMatchObject({
     cache: "no-store",
@@ -186,24 +187,32 @@ it("enforces JPEG input, vision result, speech input and audio size bounds", asy
 });
 
 it("hides speech body stream errors and preserves abort during body reads", async () => {
-  const response = new Response("audio", {
-    headers: { "content-type": "audio/mpeg" },
-  });
-  vi.spyOn(response, "blob").mockRejectedValueOnce(
-    Error("PRIVATE_STREAM_DETAILS"),
+  const response = new Response(
+    new ReadableStream({
+      start(c) {
+        c.error(Error("PRIVATE_STREAM_DETAILS"));
+      },
+    }),
+    {
+      headers: { "content-type": "audio/mpeg" },
+    },
   );
   const { ai, fetcher } = await setup(() => response);
   await expect(ai.speech("text", signal())).rejects.toThrow(
     /^음성 응답 형식이 올바르지 않습니다$/,
   );
   const abort = new AbortController();
-  const late = new Response("audio", {
-    headers: { "content-type": "audio/mpeg" },
-  });
-  vi.spyOn(late, "blob").mockImplementationOnce(async () => {
-    abort.abort();
-    return new Blob(["late"]);
-  });
+  const late = new Response(
+    new ReadableStream({
+      pull(c) {
+        abort.abort();
+        c.close();
+      },
+    }),
+    {
+      headers: { "content-type": "audio/mpeg" },
+    },
+  );
   fetcher.mockResolvedValueOnce(late);
   await expect(ai.speech("text", abort.signal)).rejects.toMatchObject({
     name: "AbortError",

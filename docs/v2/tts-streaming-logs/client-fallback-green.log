@@ -1,0 +1,13 @@
+
+> videx-mobile@2.0.0 test
+> vitest run tests/progressive-speech.test.ts
+
+
+ RUN  v5.0.5 /home/minwoo/.superset/worktrees/videx/feat/tts-streaming/mobile
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  06:03:41
+   Duration  326ms (tests 86%, transform 8%, import 4%, worker 1%)
+

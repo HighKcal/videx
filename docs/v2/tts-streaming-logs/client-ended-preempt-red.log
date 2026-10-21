@@ -1,0 +1,34 @@
+
+> videx-mobile@2.0.0 test
+> vitest run tests/progressive-speech.test.ts
+
+
+ RUN  v5.0.5 /home/minwoo/.superset/worktrees/videx/feat/tts-streaming/mobile
+
+ ❯ tests/progressive-speech.test.ts (9 tests | 1 failed) 583ms
+   × an ended predecessor cannot clean up a synchronously preempting successor 65ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/progressive-speech.test.ts > an ended predecessor cannot clean up a synchronously preempting successor
+AssertionError: expected null to be type of 'function'
+
+Expected: "function"
+Received: "object"
+
+ ❯ tests/progressive-speech.test.ts:55:29
+     53|   await s.emit();
+     54|   try {
+     55|     expect(s.audio.onended).toBeTypeOf("function");
+       |                             ^
+     56|     expect(s.manager.status).toBe("OpenAI AI 음성 재생 중");
+     57|   } finally { s.manager.clear(); s.finish(); }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 passed (9)
+   Start at  06:15:20
+   Duration  708ms (tests 94%, transform 4%, import 2%, worker 1%)
+

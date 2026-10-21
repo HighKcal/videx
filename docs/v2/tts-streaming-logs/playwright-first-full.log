@@ -1,0 +1,89 @@
+
+> videx-mobile@2.0.0 test:e2e
+> playwright test --config playwright.tts.config.ts
+
+
+Running 24 tests using 1 worker
+
+  ✓   1 tests/e2e/button-diagnostics.spec.ts:5:1 › button diagnostics distinguish wire level, accepted events and app dispatch without consent/upload (4.8s)
+  ✓   2 tests/e2e/camera-preview.spec.ts:5:1 › live LEFT preview draws native oriented pixels, clears stale/disconnected images and never uploads (3.7s)
+  ✓   3 tests/e2e/cdc-events.spec.ts:4:1 › legacy has no independent no-JPEG button channel and does not replay missed edges (2.2s)
+  ✓   4 tests/e2e/cdc-events.spec.ts:53:3 › legacy reconnect baselines stale LAST result while released (2.2s)
+  ✓   5 tests/e2e/cdc-events.spec.ts:53:3 › legacy reconnect baselines stale LAST result while held (2.2s)
+  ✓   6 tests/e2e/cdc-events.spec.ts:98:1 › legacy video stall clears an armed press and baselines recovery without replay (3.6s)
+  ✓   7 tests/e2e/cdc-events.spec.ts:142:3 › legacy mode change ignores a delayed same-origin OCR result (2.0s)
+  ✓   8 tests/e2e/cdc-events.spec.ts:142:3 › legacy consent withdrawal ignores a delayed same-origin OCR result (1.5s)
+  ✓   9 tests/e2e/cdc-events.spec.ts:142:3 › legacy unplug/reconnect ignores a delayed same-origin OCR result (2.3s)
+  ✓  10 tests/e2e/cdc-events.spec.ts:142:3 › legacy capture restart ignores a delayed same-origin OCR result (2.1s)
+  ✘  11 tests/e2e/cdc-integration.spec.ts:11:3 › default legacy browser transport › real Node demo + legacy CDC physical short/long -> OCR/front-back/TTS, no credentials (7.3s)
+  ✓  12 tests/e2e/cdc-integration.spec.ts:191:1 › real auth-required Node is an operator error, never a key prompt or provider call (382ms)
+  ✓  13 tests/e2e/cdc-only.spec.ts:8:3 › CDC-only without credential prompts: operator setup for {"ready":true,"authRequired":true} (243ms)
+  ✓  14 tests/e2e/cdc-only.spec.ts:8:3 › CDC-only without credential prompts: operator setup for {"ready":false,"authRequired":false} (241ms)
+  ✓  15 tests/e2e/cdc-only.spec.ts:8:3 › CDC-only without credential prompts: operator setup for {"ready":true} (243ms)
+  ✓  16 tests/e2e/cdc-only.spec.ts:37:1 › pending health retains CDC click activation and never flashes key or token input (282ms)
+  ✓  17 tests/e2e/cdc-privacy.spec.ts:7:1 › same-origin-only CSP and static offline cache never store user API data (432ms)
+  ✓  18 tests/e2e/cdc-privacy.spec.ts:86:1 › a real updated service worker waits and never reloads an unsaved front-side capture (2.1s)
+  ✓  19 tests/e2e/legacy-cdc.spec.ts:4:1 › legacy CAM2 flags/buttons work without a USB2 probe and use raw mode bytes (3.8s)
+  ✓  20 tests/e2e/main-client-parity.spec.ts:4:1 › main manual OCR accepts a flat 640x480 frame, preserves long/empty text and uses local speech by default (1.3s)
+TTS_MEASUREMENT {"mode":"progressive-mse","mp3Bytes":32435,"calls":1,"upstreamStart":1792617186590,"upstreamEnd":1792617188844,"firstPlaying":1792617186896,"firstAdvance":1792617187106,"playbackEnded":1792617191043,"startMs":516,"upstreamEndMs":2254,"currentTimeAtFirstObservation":0.461323,"chrome":"155.0.8059.84"}
+TTS_MEASUREMENT {"mode":"buffered-baseline","mp3Bytes":32435,"calls":1,"upstreamStart":1792617191652,"upstreamEnd":1792617193906,"firstPlaying":1792617193923,"firstAdvance":1792617194169,"playbackEnded":1792617198026,"startMs":2517,"upstreamEndMs":2254,"currentTimeAtFirstObservation":0.540884,"chrome":"155.0.8059.84"}
+  ✓  21 tests/e2e/tts-streaming.spec.ts:8:1 › native Chrome MP3 currentTime advances before paced upstream EOF, unlike buffered baseline (12.3s)
+  ✘  22 tests/e2e/usb.spec.ts:7:1 › USB is explicit, needs no pairing token and reports unsupported without network video (278ms)
+  ✓  23 tests/e2e/usb.spec.ts:31:1 › real CAM2 parsing and JPEG worker processing through a simulated USB boundary; legacy commands and unplug (1.1s)
+  ✓  24 tests/e2e/usb.spec.ts:174:1 › chooser is invoked during click activation; cancellation is actionable (303ms)
+
+
+  1) tests/e2e/cdc-integration.spec.ts:11:3 › default legacy browser transport › real Node demo + legacy CDC physical short/long -> OCR/front-back/TTS, no credentials 
+
+    Error: expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      123 |       await expect
+      124 |         .poll(() => page.evaluate(() => (window as any).audioEvidence.ended))
+    > 125 |         .toBeGreaterThan(ended);
+          |          ^
+      126 |       await expect
+      127 |         .poll(() =>
+      128 |           page.evaluate(() => (window as any).audioEvidence.bytes.at(-1)),
+        at /home/minwoo/.superset/worktrees/videx/feat/tts-streaming/mobile/tests/e2e/cdc-integration.spec.ts:125:10
+
+    Error Context: test-results/cdc-integration-default-le-268a0-ont-back-TTS-no-credentials/error-context.md
+
+  2) tests/e2e/usb.spec.ts:7:1 › USB is explicit, needs no pairing token and reports unsupported without network video 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 9
+
+    - Array []
+    + Array [
+    +   "http://127.0.0.1:14373/",
+    +   "http://127.0.0.1:14373/assets/index-cCYPnjaI.js",
+    +   "http://127.0.0.1:14373/assets/index-Borgump_.css",
+    +   "http://127.0.0.1:14373/assets/walking.worker-OWzXsEsg.js",
+    +   "http://127.0.0.1:14373/api/health",
+    +   "http://127.0.0.1:14373/assets/flood_fill-CijwzEMq.wasm",
+    +   "http://127.0.0.1:14373/api/health",
+    + ]
+
+      27 |   await page.getByRole("button", { name: "USB 장치 선택 및 연결" }).click();
+      28 |   await expect(page.getByTestId("connection")).toContainText("WebUSB 미지원");
+    > 29 |   expect(external).toEqual([]);
+         |                    ^
+      30 | });
+      31 | test("real CAM2 parsing and JPEG worker processing through a simulated USB boundary; legacy commands and unplug", async ({
+      32 |   page,
+        at /home/minwoo/.superset/worktrees/videx/feat/tts-streaming/mobile/tests/e2e/usb.spec.ts:29:20
+
+    Error Context: test-results/usb-USB-is-explicit-needs--f0d42-orted-without-network-video/error-context.md
+
+  2 failed
+    tests/e2e/cdc-integration.spec.ts:11:3 › default legacy browser transport › real Node demo + legacy CDC physical short/long -> OCR/front-back/TTS, no credentials 
+    tests/e2e/usb.spec.ts:7:1 › USB is explicit, needs no pairing token and reports unsupported without network video 
+  22 passed (1.1m)

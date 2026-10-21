@@ -1,0 +1,16 @@
+
+> videx-mobile@2.0.0 test
+> vitest run
+
+
+ RUN  v5.0.5 /home/minwoo/.superset/worktrees/videx/feat/tts-streaming/mobile
+
+
+ Test Files  25 passed (25)
+      Tests  164 passed (164)
+   Start at  06:24:46
+   Duration  4.19s (tests 80%, import 11%, transform 5%, worker 4%)
+
+    Isolate  25 workers spawned · ~79ms startup each (spawn + environment, per file)
+             at least ~1.89s faster with isolate: false — reuses workers across files instead of one per file
+

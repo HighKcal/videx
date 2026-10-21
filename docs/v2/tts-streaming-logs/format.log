@@ -1,0 +1,12 @@
+src/core/openai.ts 106ms
+src/core/feedback.ts 35ms
+src/core/progressive-speech.ts 25ms
+tests/tts-streaming.test.ts 9ms
+tests/progressive-speech.test.ts 23ms
+tests/feedback.test.ts 22ms
+tests/server-transport.test.ts 22ms
+tests/walking-feedback.test.ts 13ms
+tests/e2e/tts-streaming.spec.ts 22ms
+tests/e2e/cdc-fixtures.ts 17ms (unchanged)
+tests/e2e/usb.spec.ts 12ms (unchanged)
+playwright.tts.config.ts 3ms

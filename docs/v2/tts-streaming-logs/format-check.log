@@ -1,0 +1,12 @@
+
+> videx-mobile@2.0.0 format:check
+> prettier --check src/core src/modules src/main.tsx src/diagnostics.css 'tests/!(vision*).test.ts' tests/e2e vite.config.ts playwright.config.ts tsconfig.json package.json index.html deployment.config.json public/manifest.webmanifest
+
+Checking formatting...
+[warn] src/core/usb-source.ts
+[warn] src/core/usb-wire.ts
+[warn] tests/button-diagnostics.test.ts
+[warn] tests/legacy-compat.test.ts
+[warn] tests/usb-source.test.ts
+[warn] tests/e2e/tts-isolated-server.mjs
+[warn] Code style issues found in 6 files. Run Prettier with --write to fix.

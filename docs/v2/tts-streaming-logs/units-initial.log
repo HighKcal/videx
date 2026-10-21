@@ -1,0 +1,161 @@
+
+> videx-mobile@2.0.0 test
+> vitest run
+
+
+ RUN  v5.0.5 /home/minwoo/.superset/worktrees/videx/feat/tts-streaming/mobile
+
+ ❯ tests/server-transport.test.ts (9 tests | 1 failed) 78ms
+   × hides speech body stream errors and preserves abort during body reads 5ms
+ ❯ tests/feedback.test.ts (4 tests | 3 failed) 19ms
+   × preempts lower priority, aborts pending request, rejects late audio without leaking URLs 5ms
+   × uses loaded duration for speech longer than sixty seconds and still cleans up at ended 2ms
+   × drains a live lower-priority item when the higher-priority queued item expired 5ms
+ ❯ tests/walking-feedback.test.ts (6 tests | 6 failed) 14ms
+   × returning to walking announces current WARNING even after a recent identical announcement 9ms
+   × returning to walking announces current UNKNOWN even after a recent identical announcement 1ms
+   × object selection silences late results immediately and throughout activation 1ms
+   × ocr selection silences late results immediately and throughout activation 1ms
+   × object keeps recognition feedback while continuous walking updates diagnostics 1ms
+   × ocr keeps recognition feedback while continuous walking updates diagnostics 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/feedback.test.ts > preempts lower priority, aborts pending request, rejects late audio without leaking URLs
+TypeError: Cannot read properties of undefined (reading 'signal')
+ ❯ tests/feedback.test.ts:24:21
+     22|   f.say("읽기", 1);
+     23|   f.say("장애물", 3);
+     24|   expect(pending[0].signal.aborted).toBe(true);
+       |                     ^
+     25|   pending[0].resolve(new Blob(["late"]));
+     26|   await Promise.resolve();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  tests/feedback.test.ts > uses loaded duration for speech longer than sixty seconds and still cleans up at ended
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array []
+
+
+Number of calls: 1
+
+ ❯ tests/feedback.test.ts:100:27
+     98|   await vi.advanceTimersByTimeAsync(61000);
+     99|   expect(revoke).not.toHaveBeenCalled();
+    100|   expect(audio.pause).not.toHaveBeenCalled();
+       |                           ^
+    101|   await vi.advanceTimersByTimeAsync(59000);
+    102|   audio.onended();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  tests/feedback.test.ts > drains a live lower-priority item when the higher-priority queued item expired
+AssertionError: expected last "vi.fn()" call to have been called with [ '살아있는 인식 결과', Any<AbortSignal> ]
+
+- Expected
++ Received
+
+@@ -25,6 +25,7 @@
+        SafeWeakRef {},
+      },
+      Symbol(kResultSignalWeakRef): SafeWeakRef {},
+      Symbol(kFollowing): true,
+    },
++   [Function anonymous],
+  ]
+
+ ❯ tests/feedback.test.ts:132:21
+    130|   audioInstances[0].onended();
+    131|   await vi.advanceTimersByTimeAsync(0);
+    132|   expect(ai.speech).toHaveBeenLastCalledWith(
+       |                     ^
+    133|     "살아있는 인식 결과",
+    134|     expect.any(AbortSignal),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  tests/server-transport.test.ts > hides speech body stream errors and preserves abort during body reads
+AssertionError: promise resolved "Blob { size: 5, type: 'audio/mpeg' }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ Blob {
++   Symbol(kHandle): Blob {},
++   Symbol(kLength): 5,
++   Symbol(kType): "audio/mpeg",
+  }
+
+ ❯ tests/server-transport.test.ts:196:44
+    194|   );
+    195|   const { ai, fetcher } = await setup(() => response);
+    196|   await expect(ai.speech("text", signal())).rejects.toThrow(
+       |                                            ^
+    197|     /^음성 응답 형식이 올바르지 않습니다$/,
+    198|   );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  tests/walking-feedback.test.ts > returning to walking announces current WARNING even after a recent identical announcement
+ FAIL  tests/walking-feedback.test.ts > returning to walking announces current UNKNOWN even after a recent identical announcement
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/walking-feedback.test.ts:64:7
+     62|     expect(
+     63|       speech.mock.calls.filter(([message]) => message === text),
+     64|     ).toHaveLength(1);
+       |       ^
+     65|     worker.result(state);
+     66|     expect(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  tests/walking-feedback.test.ts > object selection silences late results immediately and throughout activation
+ FAIL  tests/walking-feedback.test.ts > ocr selection silences late results immediately and throughout activation
+TypeError: Cannot read properties of undefined (reading '1')
+ ❯ tests/walking-feedback.test.ts:78:39
+     76|     await c.select("walking");
+     77|     worker.result("WARNING");
+     78|     const warningSignal = speech.mock.lastCall![1];
+       |                                       ^
+     79|     let release!: () => void;
+     80|     const activating = vi
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  tests/walking-feedback.test.ts > object keeps recognition feedback while continuous walking updates diagnostics
+ FAIL  tests/walking-feedback.test.ts > ocr keeps recognition feedback while continuous walking updates diagnostics
+TypeError: Cannot read properties of undefined (reading '1')
+ ❯ tests/walking-feedback.test.ts:109:32
+    107|     await c.select(mode);
+    108|     c.feedback.say("인식 결과", 1);
+    109|     const signal = speech.mock.lastCall![1];
+       |                                ^
+    110|     speech.mockClear();
+    111|     c.registry.frame(frame(7, 1));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+
+ Test Files  3 failed | 22 passed (25)
+      Tests  10 failed | 145 passed (155)
+   Start at  06:02:09
+   Duration  3.90s (tests 64%, import 16%, transform 15%, worker 6%)
+
+    Isolate  25 workers spawned · ~79ms startup each (spawn + environment, per file)
+             at least ~1.89s faster with isolate: false — reuses workers across files instead of one per file
+

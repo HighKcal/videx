@@ -1,0 +1,30 @@
+
+> videx-mobile@2.0.0 test
+> vitest run tests/progressive-speech.test.ts
+
+
+ RUN  v5.0.5 /home/minwoo/.superset/worktrees/videx/feat/tts-streaming/mobile
+
+ ❯ tests/progressive-speech.test.ts (3 tests | 1 failed) 224ms
+   × cancellation immediately releases a stalled request and cannot detach its successor 16ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/progressive-speech.test.ts > cancellation immediately releases a stalled request and cannot detach its successor
+AssertionError: expected [] to include 'blob:test-1-mse'
+ ❯ tests/progressive-speech.test.ts:53:21
+     51|   s.manager.clear();
+     52|   expect(s.signal().aborted).toBe(true);
+     53|   expect(s.revoked).toContain(firstUrl);
+       |                     ^
+     54|   const pauses = s.audio.pause.mock.calls.length;
+     55|   s.audio.src = "blob:successor";
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  06:04:06
+   Duration  342ms (tests 86%, transform 9%, import 4%, worker 1%)
+

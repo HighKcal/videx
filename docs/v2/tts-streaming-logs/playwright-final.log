@@ -1,0 +1,37 @@
+
+> videx-mobile@2.0.0 test:e2e
+> playwright test --config playwright.tts.config.ts
+
+
+Running 25 tests using 1 worker
+
+  ✓   1 tests/e2e/button-diagnostics.spec.ts:5:1 › button diagnostics distinguish wire level, accepted events and app dispatch without consent/upload (4.7s)
+  ✓   2 tests/e2e/camera-preview.spec.ts:5:1 › live LEFT preview draws native oriented pixels, clears stale/disconnected images and never uploads (3.5s)
+  ✓   3 tests/e2e/cdc-events.spec.ts:4:1 › legacy has no independent no-JPEG button channel and does not replay missed edges (2.1s)
+  ✓   4 tests/e2e/cdc-events.spec.ts:53:3 › legacy reconnect baselines stale LAST result while released (2.1s)
+  ✓   5 tests/e2e/cdc-events.spec.ts:53:3 › legacy reconnect baselines stale LAST result while held (2.1s)
+  ✓   6 tests/e2e/cdc-events.spec.ts:98:1 › legacy video stall clears an armed press and baselines recovery without replay (3.6s)
+  ✓   7 tests/e2e/cdc-events.spec.ts:142:3 › legacy mode change ignores a delayed same-origin OCR result (2.0s)
+  ✓   8 tests/e2e/cdc-events.spec.ts:142:3 › legacy consent withdrawal ignores a delayed same-origin OCR result (1.5s)
+  ✓   9 tests/e2e/cdc-events.spec.ts:142:3 › legacy unplug/reconnect ignores a delayed same-origin OCR result (2.3s)
+  ✓  10 tests/e2e/cdc-events.spec.ts:142:3 › legacy capture restart ignores a delayed same-origin OCR result (2.1s)
+  ✓  11 tests/e2e/cdc-integration.spec.ts:11:3 › default legacy browser transport › real Node demo + legacy CDC physical short/long -> OCR/front-back/TTS, no credentials (4.6s)
+  ✓  12 tests/e2e/cdc-integration.spec.ts:191:1 › real auth-required Node is an operator error, never a key prompt or provider call (296ms)
+  ✓  13 tests/e2e/cdc-only.spec.ts:8:3 › CDC-only without credential prompts: operator setup for {"ready":true,"authRequired":true} (235ms)
+  ✓  14 tests/e2e/cdc-only.spec.ts:8:3 › CDC-only without credential prompts: operator setup for {"ready":false,"authRequired":false} (237ms)
+  ✓  15 tests/e2e/cdc-only.spec.ts:8:3 › CDC-only without credential prompts: operator setup for {"ready":true} (242ms)
+  ✓  16 tests/e2e/cdc-only.spec.ts:37:1 › pending health retains CDC click activation and never flashes key or token input (252ms)
+  ✓  17 tests/e2e/cdc-privacy.spec.ts:7:1 › same-origin-only CSP and static offline cache never store user API data (443ms)
+  ✓  18 tests/e2e/cdc-privacy.spec.ts:86:1 › a real updated service worker waits and never reloads an unsaved front-side capture (761ms)
+  ✓  19 tests/e2e/legacy-cdc.spec.ts:4:1 › legacy CAM2 flags/buttons work without a USB2 probe and use raw mode bytes (3.8s)
+  ✓  20 tests/e2e/main-client-parity.spec.ts:4:1 › main manual OCR accepts a flat 640x480 frame, preserves long/empty text and uses local speech by default (1.2s)
+TTS_NATIVE_REVOKED {"calls":1,"cancelled":true,"upstreamAborted":true,"paused":true,"src":null,"urls":["blob:http://127.0.0.1:43775/c44e7851-85c0-45f7-af7b-c95d7ac26ca1"],"revoked":["blob:http://127.0.0.1:43775/c44e7851-85c0-45f7-af7b-c95d7ac26ca1"]}
+  ✓  21 tests/e2e/tts-streaming.spec.ts:8:1 › native Chrome consent revocation stops playback and cancels the same pending upstream (1.3s)
+TTS_MEASUREMENT {"mode":"progressive-mse","mp3Bytes":32435,"calls":1,"upstreamStart":1792617940317,"upstreamEnd":1792617942569,"firstPlaying":1792617940577,"firstAdvance":1792617940825,"playbackEnded":1792617944801,"startMs":508,"upstreamEndMs":2252,"currentTimeAtFirstObservation":0.429212,"chrome":"155.0.8059.84"}
+TTS_MEASUREMENT {"mode":"buffered-baseline","mp3Bytes":32435,"calls":1,"upstreamStart":1792617945317,"upstreamEnd":1792617947570,"firstPlaying":1792617947582,"firstAdvance":1792617947840,"playbackEnded":1792617951690,"startMs":2523,"upstreamEndMs":2253,"currentTimeAtFirstObservation":0.541297,"chrome":"155.0.8059.84"}
+  ✓  22 tests/e2e/tts-streaming.spec.ts:135:1 › native Chrome MP3 currentTime advances before paced upstream EOF, unlike buffered baseline (12.2s)
+  ✓  23 tests/e2e/usb.spec.ts:7:1 › USB is explicit, needs no pairing token and reports unsupported without network video (264ms)
+  ✓  24 tests/e2e/usb.spec.ts:32:1 › real CAM2 parsing and JPEG worker processing through a simulated USB boundary; legacy commands and unplug (1.1s)
+  ✓  25 tests/e2e/usb.spec.ts:175:1 › chooser is invoked during click activation; cancellation is actionable (258ms)
+
+  25 passed (57.3s)

@@ -1,0 +1,14 @@
+
+> videx-mobile@2.0.0 test:e2e
+> playwright test --config playwright.tts.config.ts tests/e2e/tts-streaming.spec.ts
+
+
+Running 2 tests using 1 worker
+
+TTS_NATIVE_REVOKED {"calls":1,"cancelled":true,"upstreamAborted":true,"paused":true,"src":null,"urls":["blob:http://127.0.0.1:38217/b866dc95-1cfe-429d-81b8-6c459a86ce25"],"revoked":["blob:http://127.0.0.1:38217/b866dc95-1cfe-429d-81b8-6c459a86ce25"]}
+  ✓  1 tests/e2e/tts-streaming.spec.ts:8:1 › native Chrome consent revocation stops playback and cancels the same pending upstream (1.3s)
+TTS_MEASUREMENT {"mode":"progressive-mse","mp3Bytes":32435,"calls":1,"upstreamStart":1792617408557,"upstreamEnd":1792617410809,"firstPlaying":1792617408818,"firstAdvance":1792617409075,"playbackEnded":1792617413043,"startMs":518,"upstreamEndMs":2252,"currentTimeAtFirstObservation":0.428299,"chrome":"155.0.8059.84"}
+TTS_MEASUREMENT {"mode":"buffered-baseline","mp3Bytes":32435,"calls":1,"upstreamStart":1792617413555,"upstreamEnd":1792617415805,"firstPlaying":1792617415817,"firstAdvance":1792617416075,"playbackEnded":1792617419925,"startMs":2520,"upstreamEndMs":2250,"currentTimeAtFirstObservation":0.551437,"chrome":"155.0.8059.84"}
+  ✓  2 tests/e2e/tts-streaming.spec.ts:134:1 › native Chrome MP3 currentTime advances before paced upstream EOF, unlike buffered baseline (12.2s)
+
+  2 passed (17.2s)

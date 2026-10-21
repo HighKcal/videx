@@ -24,6 +24,12 @@ class TestWorker {
 }
 function setup() {
   vi.stubGlobal("Worker", TestWorker);
+  vi.stubGlobal(
+    "Audio",
+    class {
+      pause = vi.fn();
+    },
+  );
   controller = new AppController();
   controller.feedback.remoteSpeech = true; // Exercise the explicit remote priority path.
   // Keep real feedback priority/cancellation logic; only replace the network.

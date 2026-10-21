@@ -6,6 +6,7 @@ export class OpenAITransport {
   private healthRevision = 0;
   private imageConsent = false;
   private speechConsent = false;
+  private speechLifetime = new AbortController();
   constructor(
     private fetcher: typeof fetch = globalThis.fetch.bind(globalThis),
   ) {}
@@ -43,12 +44,15 @@ export class OpenAITransport {
     return this.authRequired || !this.ready;
   }
   configure(imageConsent: boolean, speechConsent: boolean) {
+    if (!speechConsent) {
+      this.speechLifetime.abort();
+      this.speechLifetime = new AbortController();
+    }
     this.imageConsent = imageConsent;
     this.speechConsent = speechConsent;
   }
   clear() {
-    this.imageConsent = false;
-    this.speechConsent = false;
+    this.configure(false, false);
   }
   private async request(
     endpoint: "vision" | "speech",
@@ -72,6 +76,7 @@ export class OpenAITransport {
       signal.throwIfAborted();
       throw Error("서버 사용 불가");
     });
+    if (signal.aborted || !r.ok) void r.body?.cancel().catch(() => {});
     signal.throwIfAborted();
     if (!r.ok) throw Error(`서버 사용 불가 (${r.status})`);
     return r;
@@ -134,21 +139,55 @@ export class OpenAITransport {
     if (text.length > 65536) throw Error("인식 응답이 너무 큽니다");
     return text;
   }
-  async speech(text: string, signal: AbortSignal) {
+  async speech(
+    text: string,
+    signal: AbortSignal,
+    consume?: (bytes: Uint8Array) => Promise<void>,
+  ) {
+    signal = AbortSignal.any([signal, this.speechLifetime.signal]);
     if (typeof text !== "string" || !text.trim() || text.length > 4000)
       throw Error("음성 요청은 비어 있지 않은 4000자 이하여야 합니다");
     const r = await this.request("speech", { text }, signal);
     if (
       r.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !==
       "audio/mpeg"
-    )
+    ) {
+      void r.body?.cancel().catch(() => {});
       throw Error("음성 응답 형식이 올바르지 않습니다");
-    const blob = await r.blob().catch(() => {
+    }
+    const reader = r.body?.getReader();
+    if (!reader) throw Error("음성 응답 형식이 올바르지 않습니다");
+    const cancel = () => {
+      void reader.cancel().catch(() => {});
+    };
+    signal.addEventListener("abort", cancel, { once: true });
+    const chunks: Uint8Array<ArrayBuffer>[] = [];
+    let size = 0;
+    try {
+      if (Number(r.headers.get("content-length")) > 10_000_000)
+        throw Error("음성 응답이 너무 큽니다");
+      while (true) {
+        signal.throwIfAborted();
+        const { done, value } = await reader.read();
+        signal.throwIfAborted();
+        if (done) break;
+        size += value.byteLength;
+        if (size > 10_000_000) throw Error("음성 응답이 너무 큽니다");
+        const bytes = new Uint8Array(value);
+        chunks.push(bytes);
+        await consume?.(bytes);
+      }
+      if (!size) throw Error("음성 응답 형식이 올바르지 않습니다");
+      return new Blob(chunks, { type: "audio/mpeg" });
+    } catch (error) {
+      cancel();
       signal.throwIfAborted();
+      if (error instanceof Error && error.message === "음성 응답이 너무 큽니다")
+        throw error;
       throw Error("음성 응답 형식이 올바르지 않습니다");
-    });
-    signal.throwIfAborted();
-    if (blob.size > 10_000_000) throw Error("음성 응답이 너무 큽니다");
-    return blob;
+    } finally {
+      signal.removeEventListener("abort", cancel);
+      reader.releaseLock();
+    }
   }
 }

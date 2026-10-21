@@ -108,23 +108,67 @@ async function readUpstream(response, vision, signal) {
   }
 }
 
-async function sendAudio(res, bytes) {
-  if (res.destroyed) return;
-  res.writeHead(200, { 'content-type': 'audio/mpeg', 'content-length': bytes.length, 'cache-control': 'no-store' });
-  await new Promise(resolve => {
-    const finish = () => {
+function audioWritable(res, signal, event, write) {
+  return new Promise((resolve, reject) => {
+    const finish = (error) => {
       clearTimeout(timer);
-      res.removeListener('finish', finish);
-      res.removeListener('close', finish);
-      res.removeListener('error', finish);
-      resolve();
+      res.removeListener(event, ready);
+      res.removeListener('close', closed);
+      res.removeListener('error', failed);
+      signal.removeEventListener('abort', aborted);
+      if (error) reject(error); else resolve();
     };
-    const timer = setTimeout(() => res.destroy(), 5000);
-    res.once('finish', finish);
-    res.once('close', finish);
-    res.once('error', finish);
-    res.end(bytes);
+    const ready = () => finish();
+    const closed = () => finish(Error('Disconnected'));
+    const failed = error => finish(error);
+    const aborted = () => finish(signal.reason);
+    // Keep the legacy downstream delivery bound even when the provider's
+    // overall deadline is longer. Never leave a blocked drain/finish waiting.
+    const timer = setTimeout(() => finish(Error('Audio delivery timed out')), 5000);
+    res.once(event, ready);
+    res.once('close', closed);
+    res.once('error', failed);
+    signal.addEventListener('abort', aborted, { once: true });
+    try {
+      signal.throwIfAborted();
+      if (res.destroyed) throw Error('Disconnected');
+      if (write() && event === 'drain') finish();
+    } catch (error) { finish(error); }
   });
+}
+
+async function relayAudio(res, response, signal) {
+  const limit = 10_000_000;
+  if (!response.ok || response.redirected || response.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'audio/mpeg' || Number(response.headers.get('content-length')) > limit || !response.body) {
+    void response.body?.cancel().catch(() => {});
+    throw Error();
+  }
+  const reader = response.body.getReader();
+  const cancel = () => { void reader.cancel().catch(() => {}); };
+  signal.addEventListener('abort', cancel, { once: true });
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await abortable(signal, () => reader.read());
+      signal.throwIfAborted();
+      if (done) break;
+      size += value.byteLength;
+      if (size > limit) throw Error();
+      if (!value.byteLength) continue;
+      if (!res.headersSent) res.writeHead(200, { 'content-type': 'audio/mpeg', 'cache-control': 'no-store' });
+      for (let offset = 0; offset < value.length; offset += 65536) {
+        await audioWritable(res, signal, 'drain', () => res.write(value.subarray(offset, offset + 65536)));
+      }
+    }
+    if (!size) throw Error();
+    await audioWritable(res, signal, 'finish', () => res.end());
+  } catch (error) {
+    cancel();
+    throw error;
+  } finally {
+    signal.removeEventListener('abort', cancel);
+    reader.releaseLock();
+  }
 }
 
 export function createVidexServer({ env = process.env, fetcher = globalThis.fetch, limits = {}, now = () => performance.now(), distDir = fileURLToPath(new URL('../dist', import.meta.url)) } = {}) {
@@ -185,22 +229,25 @@ export function createVidexServer({ env = process.env, fetcher = globalThis.fetc
       // default preempt main's longer OCR deadline while the provider works.
       req.setTimeout(upstreamTimeoutMs + 5000);
       timer = setTimeout(() => controller.abort(new RequestError(504, 'Upstream timed out')), upstreamTimeoutMs);
-      const bytes = await abortable(signal, async () => {
+      const response = await abortable(signal, async () => {
         const response = await fetcher(vision ? VISION_ENDPOINT : 'https://api.openai.com/v1/audio/speech', {
           method: 'POST',
           headers: { authorization: `Bearer ${config.key}`, 'content-type': 'application/json' },
           body: JSON.stringify(payload), signal,
           redirect: 'error', credentials: 'omit', cache: 'no-store',
         });
-        return readUpstream(response, vision, signal);
+        if (signal.aborted) { void response.body?.cancel().catch(() => {}); signal.throwIfAborted(); }
+        return response;
       });
       if (vision) {
+        const bytes = await abortable(signal, () => readUpstream(response, true, signal));
         const data = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
         return json(res, 200, { text: parseVisionText(body.kind, data) });
       }
-      clearTimeout(timer);
-      await sendAudio(res, bytes);
+      await relayAudio(res, response, signal);
     } catch (error) {
+      controller.abort(error);
+      if (res.headersSent) { res.destroy(); return; }
       const uploadTimedOut = error instanceof RequestError && error.status === 408;
       const stopUpload = () => {
         res.removeListener('finish', stopUpload);

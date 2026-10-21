@@ -1,0 +1,37 @@
+
+> videx-mobile@2.0.0 test
+> vitest run tests/tts-streaming.test.ts
+
+
+ RUN  v5.0.5 /home/minwoo/.superset/worktrees/videx/feat/tts-streaming/mobile
+
+ ❯ tests/tts-streaming.test.ts (2 tests | 1 failed) 399ms
+   × revoking speech consent cancels an already pending body read 330ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/tts-streaming.test.ts > revoking speech consent cancels an already pending body read
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ vi.waitFor.timeout tests/tts-streaming.test.ts:16:44
+     14|   await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+     15|   ai.configure(false, false);
+     16|   await vi.waitFor(() => expect(cancelled).toBe(true), { timeout: 300 …
+       |                                            ^
+     17|   expect((await outcome).name).toBe("AbortError");
+     18| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  06:07:02
+   Duration  538ms (tests 93%, transform 5%, import 2%, worker 1%)
+

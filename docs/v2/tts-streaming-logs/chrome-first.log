@@ -1,0 +1,12 @@
+
+> videx-mobile@2.0.0 test:e2e
+> playwright test --config playwright.tts.config.ts tests/e2e/tts-streaming.spec.ts
+
+
+Running 1 test using 1 worker
+
+TTS_MEASUREMENT {"mode":"progressive-mse","mp3Bytes":32435,"calls":1,"upstreamStart":1792617111000,"upstreamEnd":1792617113257,"firstPlaying":1792617111327,"firstAdvance":1792617111512,"playbackEnded":1792617115499,"startMs":512,"upstreamEndMs":2257,"currentTimeAtFirstObservation":0.424402,"chrome":"155.0.8059.84"}
+TTS_MEASUREMENT {"mode":"buffered-baseline","mp3Bytes":32435,"calls":1,"upstreamStart":1792617116158,"upstreamEnd":1792617118411,"firstPlaying":1792617118425,"firstAdvance":1792617118669,"playbackEnded":1792617122530,"startMs":2511,"upstreamEndMs":2253,"currentTimeAtFirstObservation":0.548024,"chrome":"155.0.8059.84"}
+  ✓  1 tests/e2e/tts-streaming.spec.ts:8:1 › native Chrome MP3 currentTime advances before paced upstream EOF, unlike buffered baseline (12.7s)
+
+  1 passed (17.6s)

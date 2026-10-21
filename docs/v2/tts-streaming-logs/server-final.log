@@ -1,0 +1,54 @@
+
+> videx-mobile@2.0.0 test:server
+> node --test server/*.test.mjs
+
+✔ explicit demo serves anonymous vision and speech without any access token (76.040721ms)
+✔ demo still rejects missing, null and non-exact Origin without provider calls (54.433978ms)
+✔ demo requires provider key and allowed origins but ignores unused access token configuration (29.642269ms)
+✔ default and every non-exact demo flag retain bearer auth and token configuration checks (153.080594ms)
+✔ anonymous demo requests share the existing global quota across both APIs (8.094618ms)
+✔ outbound OCR and object requests equal pinned main build_payload plus store:false (53.982864ms)
+✔ main provider deadlines are not preempted by the old 12s relay or 15s socket limit (16.707259ms)
+✔ OCR preserves main empty/whitespace/multiline and long text without the former 4000-character slice (16.909606ms)
+✔ OCR retains the full bounded 8192-token transport budget including heavily escaped JSON (20.173571ms)
+✔ OCR rejects non-string, malformed, duplicate/escaped duplicate and extra JSON fields without fallback (26.287611ms)
+✔ main object parser is plain product-only, quote-normalized, codepoint-bounded and never silently truncated (50.956373ms)
+✔ strict parsers match executable parse functions extracted from pinned main (61.943898ms)
+✔ vision envelopes remain bounded on advertised and streamed overflow, not silently truncated (8.039523ms)
+✔ only Chat Completions choices[0].message.content string is accepted (9.517632ms)
+✔ missing configuration is unhealthy and fails closed without any paid call (68.120386ms)
+✔ configured API requires exact bearer and allowlisted Origin before reading input (57.810939ms)
+✔ configuration rejects short tokens, invalid origins and unsupported public HTTP origins (48.915258ms)
+✔ speech validates strict schema and forwards only bounded selected text with server credential (28.716628ms)
+✔ vision accepts only a real bounded JPEG and fixed main OCR/object Chat Completions requests (104.286479ms)
+✔ provider failures, redirects and bounded response bodies return only generic no-store errors (46.818356ms)
+✔ one global bounded quota covers both APIs and ignores forwarding/IP header spoofing (9.629125ms)
+✔ global concurrency rejects immediately without queue and releases after completion (5.360287ms)
+✔ upstream deadline aborts both stalled headers and stalled body, releasing concurrency (67.74599ms)
+✔ disconnecting HTTP client aborts in-flight upstream request (4.387054ms)
+✔ chunked bodies, invalid UTF-8, encodings and slow uploads are bounded before upstream (38.407472ms)
+✔ readiness route is read-only and ambiguous authentication headers are rejected (3.528592ms)
+✔ invalid limiter configuration cannot disable bounds and provider/access credentials must differ (2.493662ms)
+✔ HTTP parser and connection budgets fail closed without logging request contents (5.768939ms)
+✔ slow audio consumers retain the concurrency slot until delivery or disconnect (17.864213ms)
+✔ slow chunked upload timeout closes socket and reader before accepting more work (204.101296ms)
+ℹ {"timeoutStatus":408,"connection":"close","socketDestroyed":true,"readerPending":0,"consumedBytes":10,"attemptedLateBytes":4096,"slotStatusBefore":429,"slotStatusAfter":200,"closeObservedMs":201,"upstreamCalls":1}
+✔ CLI starts from repository root and mobile, serves actual existing dist, and fails closed without secrets (313.829492ms)
+✔ CLI rejects malformed bind settings with generic diagnostics and no secret values (190.864213ms)
+✔ same port serves built assets with live CSP, no-store worker and no API caching (90.708628ms)
+✔ static traversal, symlinks, hidden/config/source files and API fallbacks are denied (27.823279ms)
+✔ blocked downstream retains the legacy five-second delivery wait bound (5563.633137ms)
+✔ slow TCP consumer backpressures upstream pulls, keeps its slot and disconnect cancels the reader (237.707586ms)
+ℹ {"pausedPulls":75,"maximumBytesRead":4915200,"cancelled":true,"releasedStatus":200}
+✔ post-header overflow destroys MPEG stream, cancels upstream and releases slot without JSON (20.639693ms)
+✔ post-header timeout destroys MPEG stream, cancels upstream and releases slot without JSON (110.084643ms)
+✔ post-header error destroys MPEG stream, cancels upstream and releases slot without JSON (5.106521ms)
+✔ relays the first bytes before upstream EOF without content-length or buffering (3.733053ms)
+ℹ tests 40
+ℹ suites 0
+ℹ pass 40
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5686.232752

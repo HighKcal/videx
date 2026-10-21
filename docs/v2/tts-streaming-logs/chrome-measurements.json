@@ -1,0 +1,30 @@
+[
+  {
+    "mode": "progressive-mse",
+    "mp3Bytes": 32435,
+    "calls": 1,
+    "upstreamStart": 1792625814504,
+    "upstreamEnd": 1792625816759,
+    "firstPlaying": 1792625814774,
+    "firstAdvance": 1792625815028,
+    "playbackEnded": 1792625818999,
+    "startMs": 524,
+    "upstreamEndMs": 2255,
+    "currentTimeAtFirstObservation": 0.419933,
+    "chrome": "155.0.8059.84"
+  },
+  {
+    "mode": "buffered-baseline",
+    "mp3Bytes": 32435,
+    "calls": 1,
+    "upstreamStart": 1792625819622,
+    "upstreamEnd": 1792625821879,
+    "firstPlaying": 1792625821900,
+    "firstAdvance": 1792625822153,
+    "playbackEnded": 1792625826003,
+    "startMs": 2531,
+    "upstreamEndMs": 2257,
+    "currentTimeAtFirstObservation": 0.53432,
+    "chrome": "155.0.8059.84"
+  }
+]

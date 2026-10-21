@@ -1,0 +1,40 @@
+
+> videx-mobile@2.0.0 test
+> vitest run
+
+
+ RUN  v5.0.5 /home/minwoo/.superset/worktrees/videx/feat/tts-streaming/mobile
+
+ ❯ tests/tts-streaming.test.ts (2 tests | 1 failed) 395ms
+   × revoking speech consent cancels an already pending body read 330ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/tts-streaming.test.ts > revoking speech consent cancels an already pending body read
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ vi.waitFor.timeout tests/tts-streaming.test.ts:16:44
+     14|   await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+     15|   ai.configure(false, false);
+     16|   await vi.waitFor(() => expect(cancelled).toBe(true), { timeout: 300 …
+       |                                            ^
+     17|   expect((await outcome).name).toBe("AbortError");
+     18| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 24 passed (25)
+      Tests  1 failed | 157 passed (158)
+   Start at  06:07:36
+   Duration  4.13s (tests 80%, import 12%, worker 4%, transform 4%)
+
+    Isolate  25 workers spawned · ~79ms startup each (spawn + environment, per file)
+             at least ~1.90s faster with isolate: false — reuses workers across files instead of one per file
+

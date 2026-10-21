@@ -1,4 +1,5 @@
 import type { OpenAITransport } from "./openai";
+import { playRemoteSpeech } from "./progressive-speech";
 export type Priority = 0 | 1 | 2 | 3; // guidance, recognition, fault, obstacle
 interface Message {
   text: string;
@@ -96,8 +97,7 @@ export class FeedbackManager {
     const controller = new AbortController();
     this.current = { message, controller };
     this.caption(message.text);
-    let networkTimer: ReturnType<typeof setTimeout> | undefined;
-    let playbackTimer: ReturnType<typeof setTimeout> | undefined;
+
     try {
       if (!this.remoteSpeech) {
         await this.playLocal(message.text, controller.signal);
@@ -109,56 +109,12 @@ export class FeedbackManager {
         controller.signal.throwIfAborted();
         this.status = "OpenAI AI 음성 생성 중";
         this.changed();
-        const blob = await Promise.race([
-          this.ai.speech(part, controller.signal),
-          new Promise<never>((_, reject) => {
-            networkTimer = setTimeout(() => {
-              reject(Error("음성 생성 시간 초과"));
-              controller.abort();
-            }, 15000);
-          }),
-        ]);
-        clearTimeout(networkTimer);
-        if (controller.signal.aborted) return;
-        const url = (this.url = URL.createObjectURL(blob));
         const audio = (this.audio = this.output ??= new Audio());
-        audio.src = url;
-        this.status = "OpenAI AI 음성 재생 중";
-        this.changed();
-        await new Promise<void>((resolve, reject) => {
-          this.release = resolve;
-          audio.onended = () => resolve();
-          audio.onerror = () => reject(Error("오디오 재생 실패"));
-          const startedAt = performance.now();
-          // Metadata-free playback retains the bounded 60s fallback. A finite
-          // duration extends it for long OCR, but never beyond 15 minutes total.
-          const updateWatchdog = () => {
-            clearTimeout(playbackTimer);
-            const elapsed = performance.now() - startedAt;
-            const durationMs =
-              Number.isFinite(audio.duration) && audio.duration > 0
-                ? Math.max(0, audio.duration - (audio.currentTime || 0)) *
-                    1000 +
-                  15000
-                : 60000;
-            const remaining = Math.max(
-              0,
-              Math.min(900000 - elapsed, Math.max(60000, durationMs)),
-            );
-            playbackTimer = setTimeout(
-              () => reject(Error("오디오 재생 시간 초과")),
-              remaining,
-            );
-          };
-          audio.onloadedmetadata = updateWatchdog;
-          audio.ondurationchange = updateWatchdog;
-          playbackTimer = setTimeout(
-            () => reject(Error("오디오 메타데이터/재생 시간 초과")),
-            60000,
-          );
-          void audio.play().catch(reject);
+        await playRemoteSpeech(this.ai, part, audio, controller.signal, () => {
+          this.status = "OpenAI AI 음성 재생 중";
+          this.changed();
         });
-        clearTimeout(playbackTimer);
+        if (controller.signal.aborted) return;
         this.cleanup();
       }
       if (this.current?.controller === controller) this.status = "음성 완료";
@@ -184,8 +140,6 @@ export class FeedbackManager {
         }
       }
     } finally {
-      clearTimeout(networkTimer);
-      clearTimeout(playbackTimer);
       if (this.current?.controller === controller) {
         this.cleanup();
         this.current = undefined;
@@ -296,6 +250,7 @@ export class FeedbackManager {
     this.current?.controller.abort();
     this.current = undefined;
     this.cleanup();
+    this.status = "음성 대기";
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
   }
   clear() {

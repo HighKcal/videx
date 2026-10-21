@@ -1,0 +1,44 @@
+{
+  "sourceFreezeVerified": true,
+  "sourceFiles": 18,
+  "distFiles": 9,
+  "redLogs": [
+    "client-cancel-red.log",
+    "client-cancel-status-red.log",
+    "client-chunks-red.log",
+    "client-ended-preempt-red.log",
+    "client-fallback-red.log",
+    "client-playback-red.log",
+    "client-revoke-red.log",
+    "server-delivery-timeout-red.log",
+    "server-relay-red.log"
+  ],
+  "finalChecks": {
+    "units": 164,
+    "server": 40,
+    "playwright": 25,
+    "buildExit": 0,
+    "ownedFormatExit": 0,
+    "gitDiffCheckExit": 0,
+    "fullFormatExit": 1
+  },
+  "nativePlayingMs": [
+    260,
+    2265
+  ],
+  "nativeCurrentTimeStartMs": [
+    508,
+    2523
+  ],
+  "ownedTestRunners": [],
+  "port14373Released": true,
+  "remainingFormatWarnings": [
+    "src/core/usb-source.ts",
+    "src/core/usb-wire.ts",
+    "tests/button-diagnostics.test.ts",
+    "tests/legacy-compat.test.ts",
+    "tests/usb-source.test.ts",
+    "Code style issues found in 5 files. Run Prettier with --write to fix."
+  ],
+  "gitDiffCheckExit": 0
+}

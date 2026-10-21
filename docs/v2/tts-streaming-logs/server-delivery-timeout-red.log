@@ -1,0 +1,28 @@
+✖ blocked downstream retains the legacy five-second delivery wait bound (5538.45394ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5616.659294
+
+✖ failing tests:
+
+test at server/tts-delivery-timeout.test.mjs:7:1
+✖ blocked downstream retains the legacy five-second delivery wait bound (5538.45394ms)
+  AssertionError [ERR_ASSERTION]: blocked drain must cancel before the longer upstream deadline
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///home/minwoo/.superset/worktrees/videx/feat/tts-streaming/mobile/server/tts-delivery-timeout.test.mjs:31:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

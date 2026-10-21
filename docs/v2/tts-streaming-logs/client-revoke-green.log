@@ -1,0 +1,13 @@
+
+> videx-mobile@2.0.0 test
+> vitest run tests/tts-streaming.test.ts
+
+
+ RUN  v5.0.5 /home/minwoo/.superset/worktrees/videx/feat/tts-streaming/mobile
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  06:08:08
+   Duration  270ms (tests 78%, transform 12%, import 8%, worker 2%)
+
